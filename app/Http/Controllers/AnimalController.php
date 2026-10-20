@@ -14,6 +14,8 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Http;
 
+use Illuminate\Validation\Rule;
+
 
 
 class AnimalController extends Controller
@@ -64,11 +66,15 @@ class AnimalController extends Controller
 
             'has_passport' => 'nullable|boolean',
 
-            'passport_number' => 'nullable|string|max:255',
+            'passport_number' => ['nullable', 'string', 'max:255', Rule::unique('animals', 'passport_number')],
 
             'chip_number' => 'nullable|string|max:255',
 
             'passport_issue_date' => 'nullable|date',
+
+        ], [
+
+            'passport_number.unique' => __("Bu pasport raqamiga ega hayvon tizimda allaqachon mavjud."),
 
         ]);
 
@@ -144,11 +150,15 @@ class AnimalController extends Controller
 
             'has_passport' => 'nullable|boolean',
 
-            'passport_number' => 'nullable|string|max:255',
+            'passport_number' => ['nullable', 'string', 'max:255', Rule::unique('animals', 'passport_number')->ignore($animal->id)],
 
             'chip_number' => 'nullable|string|max:255',
 
             'passport_issue_date' => 'nullable|date',
+
+        ], [
+
+            'passport_number.unique' => __("Bu pasport raqamiga ega hayvon tizimda allaqachon mavjud."),
 
         ]);
 
@@ -252,7 +262,9 @@ class AnimalController extends Controller
 
     {
 
-        $watchers = BankAnimalWatcher::where('animal_id', $animal->id)->get();
+        $watchers = BankAnimalWatcher::where('animal_id', $animal->id)
+            ->where('status', BankAnimalWatcher::STATUS_APPROVED)
+            ->get();
 
 
 

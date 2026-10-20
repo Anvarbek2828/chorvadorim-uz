@@ -18,26 +18,39 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Http;
 
+use Illuminate\Support\Facades\RateLimiter;
+
 
 
 class TelegramController extends Controller
 
 {
 
+    private const LINK_CODE_TTL_MINUTES = 10;
+
+    private const LINK_CODE_MAX_ATTEMPTS = 5;
+
+    private const LINK_CODE_DECAY_SECONDS = 15 * 60;
+
+    private const WATCH_REQUEST_DECAY_SECONDS = 60 * 60;
+
     public function webhook(Request $request)
 
     {
 
-        $secret = config('services.telegram.webhook_secret');
+        $secret = (string) config('services.telegram.webhook_secret');
+        $incoming = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
 
-        $incoming = $request->header('X-Telegram-Bot-Api-Secret-Token');
-
-
-
-        if ($secret && $incoming !== $secret) {
-
+        // Token sozlanmagan bo'lsa ham so'rov rad etiladi (fail-closed)
+        if ($secret === '' || !hash_equals($secret, $incoming)) {
             return response()->json(['ok' => false], 403);
+        }
 
+        $callback = $request->input('callback_query');
+
+        if (is_array($callback)) {
+            $this->handleCallback($callback);
+            return response()->json(['ok' => true]);
         }
 
 
@@ -82,10 +95,15 @@ class TelegramController extends Controller
 
         if (str_starts_with($text, '/kuzatish')) {
 
-            $this->handleBankWatch($chatId, trim(str_replace('/kuzatish', '', $text)));
+            $this->handleBankWatch($chatId, trim(str_replace('/kuzatish', '', $text)), $message['from'] ?? []);
 
             return response()->json(['ok' => true]);
 
+        }
+
+        if ($text === '/kuzatuvchilar') {
+            $this->handleWatcherList($chatId);
+            return response()->json(['ok' => true]);
         }
 
 
@@ -120,13 +138,18 @@ class TelegramController extends Controller
 
         TelegramLinkCode::where('user_id', $user->id)->delete();
 
+        // Muddati o'tgan kodlar ham tozalanadi ('code' ustuni unique)
+        TelegramLinkCode::where('expires_at', '<=', now())->delete();
+
 
 
         do {
 
             $code = (string) random_int(100000, 999999);
 
-        } while (TelegramLinkCode::where('code', $code)->where('expires_at', '>', now())->exists());
+        } while (TelegramLinkCode::where('code', $code)->exists());
+
+        $expiresAt = now()->addMinutes(self::LINK_CODE_TTL_MINUTES);
 
 
 
@@ -136,7 +159,7 @@ class TelegramController extends Controller
 
             'user_id' => $user->id,
 
-            'expires_at' => now()->addMinutes(3),
+            'expires_at' => $expiresAt,
 
         ]);
 
@@ -146,7 +169,7 @@ class TelegramController extends Controller
 
             'code' => $code,
 
-            'expires_at' => now()->addMinutes(3)->toIso8601String(),
+            'expires_at' => $expiresAt->toIso8601String(),
 
         ]);
 
@@ -158,29 +181,28 @@ class TelegramController extends Controller
 
     {
 
-        $linkCode = TelegramLinkCode::where('code', $code)->first();
+        $limiterKey = 'telegram-link-code:' . $chatId;
 
-
-
-        if (!$linkCode) {
-
-            $this->sendMessage($chatId, "Bunday kod topilmadi. Saytdan yangi kod oling.");
-
+        if (RateLimiter::tooManyAttempts($limiterKey, self::LINK_CODE_MAX_ATTEMPTS)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($limiterKey) / 60);
+            $this->sendMessage($chatId, $this->trilingual('Juda ko\'p noto\'g\'ri urinish. Bog\'lash vaqtincha bloklandi. :minutes daqiqadan keyin qayta urinib ko\'ring.', ['minutes' => max(1, $minutes)]));
             return;
-
         }
 
+        $linkCode = TelegramLinkCode::where('code', $code)
+            ->where('expires_at', '>', now())
+            ->first();
 
+        // Kod bir martalik: avval o'chiriladi, o'chirish muvaffaqiyatli bo'lsagina bog'lanadi
+        $consumed = $linkCode && TelegramLinkCode::whereKey($linkCode->id)->delete() === 1;
 
-        if ($linkCode->isExpired()) {
-
-            $this->sendMessage($chatId, "Kod muddati tugagan (3 daqiqadan o'tgan). Saytdan yangi kod oling.");
-
-            $linkCode->delete();
-
+        if (!$consumed) {
+            RateLimiter::hit($limiterKey, self::LINK_CODE_DECAY_SECONDS);
+            $this->sendMessage($chatId, $this->trilingual('Kod noto\'g\'ri yoki muddati tugagan. Saytdan yangi kod oling.'));
             return;
-
         }
+
+        RateLimiter::clear($limiterKey);
 
 
 
@@ -192,10 +214,6 @@ class TelegramController extends Controller
 
 
 
-        $linkCode->delete();
-
-
-
         $check = "\u{2705}";
 
         $this->sendMessage($chatId, "{$check} Muvaffaqiyatli bog'landi, {$user->name}!\n\nEndi quyidagi buyruqlardan foydalanishingiz mumkin:\n/hayvonlarim - hayvonlaringiz ro'yxati\nHayvon nomini yozing - o'sha hayvon holatini ko'rish");
@@ -204,7 +222,7 @@ class TelegramController extends Controller
 
 
 
-    private function handleBankWatch(string $chatId, string $number)
+    private function handleBankWatch(string $chatId, string $number, array $from = [])
 
     {
 
@@ -218,15 +236,18 @@ class TelegramController extends Controller
 
 
 
-        $animal = Animal::where('passport_number', $number)
+        $animals = Animal::where('passport_number', $number)
 
             ->orWhere('chip_number', $number)
 
-            ->first();
+            ->limit(2)
+
+            ->get();
 
 
 
-        if (!$animal) {
+        // Raqam bir nechta hayvonga mos kelsa, noto'g'ri hayvon ko'rsatilmasligi uchun hech biri tanlanmaydi
+        if ($animals->count() !== 1) {
 
             $this->sendMessage($chatId, "Bunday pasport/chip raqamiga ega hayvon topilmadi: {$number}");
 
@@ -234,22 +255,174 @@ class TelegramController extends Controller
 
         }
 
+        $animal = $animals->first();
+        $owner = $animal->user;
 
+        if (!$owner || !$owner->telegram_chat_id) {
+            $this->sendMessage($chatId, $this->trilingual("Hayvon egasi Telegram botga ulanmagan, shuning uchun kuzatuv so'rovi rad etildi."));
+            return;
+        }
 
-        BankAnimalWatcher::firstOrCreate([
-
+        $watcher = BankAnimalWatcher::firstOrNew([
             'telegram_chat_id' => $chatId,
-
             'animal_id' => $animal->id,
-
         ]);
 
+        // Fermer avval ruxsat bergan bo'lsa, ma'lumot beriladi
+        if ($watcher->exists && $watcher->status === BankAnimalWatcher::STATUS_APPROVED) {
+            $this->sendMessage($chatId, $this->formatAnimalStatus($animal));
+            return;
+        }
 
+        // Fermerga bir xil so'rov soatiga bir martadan ko'p yuborilmaydi
+        $requestLimiterKey = 'telegram-watch-request:' . $chatId . ':' . $animal->id;
 
-        $check = "\u{2705}";
+        if (RateLimiter::tooManyAttempts($requestLimiterKey, 1)) {
+            $this->sendMessage($chatId, $this->trilingual("So'rov allaqachon yuborilgan. Hayvon egasining javobini kuting."));
+            return;
+        }
 
-        $this->sendMessage($chatId, "{$check} Kuzatuv boshlandi.\n\n" . $this->formatAnimalStatus($animal));
+        RateLimiter::hit($requestLimiterKey, self::WATCH_REQUEST_DECAY_SECONDS);
 
+        $watcher->status = BankAnimalWatcher::STATUS_PENDING;
+        $watcher->requester_name = $this->requesterName($from, $chatId);
+        $watcher->responded_at = null;
+        $watcher->save();
+
+        $this->sendMessage(
+            $owner->telegram_chat_id,
+            "\u{1F3E6} " . $this->trilingual(
+                "Kuzatuv so'rovi. :requester sizning \":animal\" (raqami: :number) hayvoningizni kuzatishni so'rayapti. Ruxsat bersangiz, u hayvon holatini ko'radi va hayvon o'chirilsa yoki tiklansa xabar oladi. Diqqat: so'rovchining ismi uning Telegram profilidan olingan va tekshirilmagan.",
+                [
+                    'requester' => $watcher->requester_name,
+                    'animal' => $animal->name,
+                    'number' => $animal->passport_number ?? $animal->chip_number,
+                ]
+            ),
+            [
+                'inline_keyboard' => [
+                    [['text' => "\u{2705} " . $this->trilingualLabel('Ruxsat berish'), 'callback_data' => 'watch:approve:' . $watcher->id]],
+                    [['text' => "\u{274C} " . $this->trilingualLabel('Rad etish'), 'callback_data' => 'watch:reject:' . $watcher->id]],
+                ],
+            ]
+        );
+
+        $this->sendMessage($chatId, $this->trilingual("So'rov hayvon egasiga yuborildi. Ruxsat berilgach, sizga xabar keladi."));
+
+    }
+
+    private function handleWatcherList(string $chatId)
+    {
+        $user = User::where('telegram_chat_id', $chatId)->first();
+
+        if (!$user) {
+            $this->sendMessage($chatId, $this->trilingual("Avval hisobingizni bog'lashingiz kerak. Saytdagi bog'lash kodini shu yerga yuboring."));
+            return;
+        }
+
+        $watchers = BankAnimalWatcher::where('status', BankAnimalWatcher::STATUS_APPROVED)
+            ->whereHas('animal', fn ($q) => $q->withTrashed()->where('user_id', $user->id))
+            ->with(['animal' => fn ($q) => $q->withTrashed()])
+            ->limit(50)
+            ->get();
+
+        if ($watchers->isEmpty()) {
+            $this->sendMessage($chatId, $this->trilingual("Hozir hayvonlaringizni hech kim kuzatmayapti."));
+            return;
+        }
+
+        $keyboard = $watchers->map(fn ($watcher) => [[
+            'text' => mb_strimwidth("\u{274C} {$watcher->animal->name} — " . ($watcher->requester_name ?? 'ID ' . $watcher->telegram_chat_id), 0, 60, '…'),
+            'callback_data' => 'watch:revoke:' . $watcher->id,
+        ]])->all();
+
+        $this->sendMessage(
+            $chatId,
+            $this->trilingual("Hayvonlaringizni kuzatayotganlar ro'yxati. Kuzatuvni bekor qilish uchun tegishli tugmani bosing."),
+            ['inline_keyboard' => $keyboard]
+        );
+    }
+
+    private function handleCallback(array $callback)
+    {
+        $callbackId = (string) ($callback['id'] ?? '');
+        $fromId = (string) ($callback['from']['id'] ?? '');
+        $data = (string) ($callback['data'] ?? '');
+        $message = $callback['message'] ?? null;
+
+        if (!preg_match('/^watch:(approve|reject|revoke):(\d+)$/', $data, $matches)) {
+            $this->answerCallback($callbackId);
+            return;
+        }
+
+        [, $action, $watcherId] = $matches;
+
+        $watcher = BankAnimalWatcher::with(['animal' => fn ($q) => $q->withTrashed(), 'animal.user'])->find($watcherId);
+        $animal = $watcher?->animal;
+        $owner = $animal?->user;
+
+        $expectedStatus = $action === 'revoke' ? BankAnimalWatcher::STATUS_APPROVED : BankAnimalWatcher::STATUS_PENDING;
+
+        // Faqat hayvon egasi va faqat kutilgan holatdagi so'rovga javob bera oladi
+        if (!$owner || (string) $owner->telegram_chat_id !== $fromId || $watcher->status !== $expectedStatus) {
+            $this->answerCallback($callbackId, $this->trilingualLabel("Bu so'rov endi amal qilmaydi."));
+            $this->removeButtons($message);
+            return;
+        }
+
+        $number = $animal->passport_number ?? $animal->chip_number;
+
+        $watcher->status = match ($action) {
+            'approve' => BankAnimalWatcher::STATUS_APPROVED,
+            'reject' => BankAnimalWatcher::STATUS_REJECTED,
+            'revoke' => BankAnimalWatcher::STATUS_REVOKED,
+        };
+        $watcher->responded_at = now();
+        $watcher->save();
+
+        $this->answerCallback($callbackId);
+        $this->removeButtons($message);
+
+        if ($action === 'approve') {
+            $this->sendMessage($fromId, $this->trilingual("Ruxsat berildi. Kuzatuvni istalgan vaqtda /kuzatuvchilar buyrug'i orqali bekor qilishingiz mumkin."));
+            $this->sendMessage($watcher->telegram_chat_id, $this->trilingual("Hayvon egasi kuzatuvga ruxsat berdi.") . "\n\n" . $this->formatAnimalStatus($animal));
+        } elseif ($action === 'reject') {
+            $this->sendMessage($fromId, $this->trilingual("So'rov rad etildi."));
+            $this->sendMessage($watcher->telegram_chat_id, $this->trilingual("Hayvon egasi :number raqamli hayvonni kuzatish so'rovini rad etdi.", ['number' => $number]));
+        } else {
+            $this->sendMessage($fromId, $this->trilingual("Kuzatuv bekor qilindi."));
+            $this->sendMessage($watcher->telegram_chat_id, $this->trilingual("Hayvon egasi :number raqamli hayvonni kuzatishga bergan ruxsatini bekor qildi.", ['number' => $number]));
+        }
+    }
+
+    private function requesterName(array $from, string $chatId): string
+    {
+        $name = trim(($from['first_name'] ?? '') . ' ' . ($from['last_name'] ?? ''));
+
+        if (!empty($from['username'])) {
+            $name = trim($name . ' (@' . $from['username'] . ')');
+        }
+
+        $name = trim($name . ', ID ' . $chatId, ', ');
+
+        return mb_substr($name, 0, 255);
+    }
+
+    /**
+     * Bot foydalanuvchining tilini bilmaydi, shuning uchun xabar uch tilda yuboriladi.
+     */
+    private function trilingual(string $key, array $replace = []): string
+    {
+        return collect(['uz', 'uz_cyrl', 'ru'])
+            ->map(fn ($locale) => __($key, $replace, $locale))
+            ->implode("\n\n");
+    }
+
+    private function trilingualLabel(string $key): string
+    {
+        return collect(['uz', 'uz_cyrl', 'ru'])
+            ->map(fn ($locale) => __($key, [], $locale))
+            ->implode(' / ');
     }
 
 
@@ -338,7 +511,9 @@ class TelegramController extends Controller
 
 
 
-        $watchedAnimalIds = BankAnimalWatcher::where('telegram_chat_id', $chatId)->pluck('animal_id');
+        $watchedAnimalIds = BankAnimalWatcher::where('telegram_chat_id', $chatId)
+            ->where('status', BankAnimalWatcher::STATUS_APPROVED)
+            ->pluck('animal_id');
 
         if ($watchedAnimalIds->isNotEmpty()) {
 
@@ -458,7 +633,7 @@ class TelegramController extends Controller
 
             . "FERMER bo'lsangiz:\n"
 
-            . "Saytdagi shaxsiy sahifangizdan 6 xonali bog'lash kodini oling va shu yerga yuboring (kod 3 daqiqa amal qiladi).\n\n"
+            . "Saytdagi shaxsiy sahifangizdan 6 xonali bog'lash kodini oling va shu yerga yuboring (kod 10 daqiqa amal qiladi).\n\n"
 
             . "{$bank} BANK vakili bo'lsangiz:\n"
 
@@ -470,22 +645,56 @@ class TelegramController extends Controller
 
 
 
-    private function sendMessage(string $chatId, string $text)
+    private function sendMessage(string $chatId, string $text, ?array $replyMarkup = null)
 
     {
 
-        $token = config('services.telegram.bot_token');
-
-
-
-        Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
+        $params = [
 
             'chat_id' => $chatId,
 
             'text' => $text,
 
-        ]);
+        ];
 
+        if ($replyMarkup) {
+            $params['reply_markup'] = $replyMarkup;
+        }
+
+        $this->telegramRequest('sendMessage', $params);
+
+    }
+
+    private function answerCallback(string $callbackId, ?string $text = null)
+    {
+        if ($callbackId === '') {
+            return;
+        }
+
+        $this->telegramRequest('answerCallbackQuery', array_filter([
+            'callback_query_id' => $callbackId,
+            'text' => $text,
+        ]));
+    }
+
+    private function removeButtons(?array $message)
+    {
+        if (!isset($message['chat']['id'], $message['message_id'])) {
+            return;
+        }
+
+        $this->telegramRequest('editMessageReplyMarkup', [
+            'chat_id' => $message['chat']['id'],
+            'message_id' => $message['message_id'],
+            'reply_markup' => ['inline_keyboard' => []],
+        ]);
+    }
+
+    private function telegramRequest(string $method, array $params)
+    {
+        $token = config('services.telegram.bot_token');
+
+        Http::post("https://api.telegram.org/bot{$token}/{$method}", $params);
     }
 
 }
