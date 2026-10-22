@@ -6,11 +6,17 @@ namespace App\Http\Controllers;
 
 
 
+use App\Models\AiUsageLog;
+
 use App\Models\Animal;
 
 use App\Models\AnimalPhotoAnalysis;
 
 use App\Models\KnowledgeBase;
+
+use App\Services\AiUsageService;
+
+use App\Services\VisionImage;
 
 use Illuminate\Http\Request;
 
@@ -64,9 +70,12 @@ class PhotoAnalysisController extends Controller
 
 
 
-        $imageData = base64_encode(file_get_contents($fullPath));
+        // Token tejash uchun rasm yuborishdan oldin kichraytiriladi (saqlangan asl fayl o'zgarmaydi)
+        $image = VisionImage::encode($fullPath, $request->file('photo')->getMimeType(), (int) config('ai.vision_max_side', 1024));
 
-        $mimeType = $request->file('photo')->getMimeType();
+        $imageData = $image['data'];
+
+        $mimeType = $image['mime'];
 
 
 
@@ -109,6 +118,7 @@ class PhotoAnalysisController extends Controller
                 'temperature' => 0.3,
 
                 'response_format' => ['type' => 'json_object'],
+                'max_tokens' => (int) config('ai.vision_max_tokens', 600),
 
             ]);
 
@@ -121,6 +131,8 @@ class PhotoAnalysisController extends Controller
             return back()->with('error', 'Rasmni tahlil qilishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.');
 
         }
+
+        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_VISION, $response->json() ?? [], 'gpt-4o-mini');
 
 
 
@@ -213,6 +225,7 @@ class PhotoAnalysisController extends Controller
                 ],
 
                 'temperature' => 0.7,
+                'max_tokens' => (int) config('ai.chat_max_tokens', 800),
 
             ]);
 
@@ -223,6 +236,8 @@ class PhotoAnalysisController extends Controller
             return back()->with('error', 'AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.');
 
         }
+
+        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $response->json() ?? [], 'gpt-4o-mini');
 
 
 

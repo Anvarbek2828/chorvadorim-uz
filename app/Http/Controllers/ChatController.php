@@ -6,9 +6,13 @@ namespace App\Http\Controllers;
 
 
 
+use App\Models\AiUsageLog;
+
 use App\Models\Animal;
 
 use App\Models\KnowledgeBase;
+
+use App\Services\AiUsageService;
 
 use Illuminate\Http\Request;
 
@@ -81,6 +85,7 @@ class ChatController extends Controller
                 'messages' => $messages,
 
                 'temperature' => 0.7,
+                'max_tokens' => (int) config('ai.chat_max_tokens', 800),
 
             ]);
 
@@ -91,6 +96,8 @@ class ChatController extends Controller
             return back()->with('error', 'AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.');
 
         }
+
+        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $response->json() ?? [], 'gpt-4o-mini');
 
 
 
