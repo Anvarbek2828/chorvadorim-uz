@@ -52,6 +52,11 @@ class ChatController extends Controller
 
         ]);
 
+        // Limit oshgan bo'lsa AI umuman chaqirilmaydi
+        if ($denied = app(AiUsageService::class)->denyReason(auth()->user(), AiUsageLog::TYPE_CHAT, $animal)) {
+            return back()->withInput()->with('error', $denied['message'])->with('show_plans_link', $denied['upgrade']);
+        }
+
 
 
         $relevantKnowledge = $this->findRelevantKnowledge($validated['question'], $animal->direction);

@@ -38,6 +38,10 @@
 
                     </x-nav-link>
 
+                    <x-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
+                        {{ __('Tariflar') }}
+                    </x-nav-link>
+
                 </div>
 
             </div>
@@ -183,6 +187,10 @@
 
                 {{ __('Mening hayvonlarim') }}
 
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
+                {{ __('Tariflar') }}
             </x-responsive-nav-link>
 
         </div>

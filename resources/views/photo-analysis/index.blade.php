@@ -28,7 +28,12 @@
 
             @if (session('error'))
 
-            <div class="bg-red-100 text-red-700 p-3 rounded">{{ session('error') }}</div>
+            <div class="bg-red-100 text-red-700 p-3 rounded">
+                {{ session('error') }}
+                @if (session('show_plans_link'))
+                    @include('plans.partials.upgrade-link')
+                @endif
+            </div>
 
             @endif
 

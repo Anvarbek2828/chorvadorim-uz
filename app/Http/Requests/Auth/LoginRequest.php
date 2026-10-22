@@ -50,6 +50,15 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Bloklangan foydalanuvchi parol to'g'ri bo'lsa ham kira olmaydi
+        if (Auth::user()->is_blocked) {
+            Auth::guard('web')->logout();
+
+            throw ValidationException::withMessages([
+                'email' => __('Hisobingiz bloklangan. Batafsil ma\'lumot uchun administratsiyaga murojaat qiling.'),
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

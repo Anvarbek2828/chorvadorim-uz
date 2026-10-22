@@ -82,6 +82,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/animals/{animal}/photo-analysis/{analysis}/ask', [App\Http\Controllers\PhotoAnalysisController::class, 'askQuestion'])->middleware('throttle:20,1')->name('photo-analysis.ask');
     Route::delete('/animals/{animal}/photo-analysis/{analysis}', [App\Http\Controllers\PhotoAnalysisController::class, 'destroy'])->name('photo-analysis.destroy');
 
+    Route::get('/tariflar', [App\Http\Controllers\PlanController::class, 'index'])->name('plans.index');
+
 });
 
 

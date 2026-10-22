@@ -10,6 +10,8 @@ use App\Models\Animal;
 
 use App\Models\BankAnimalWatcher;
 
+use App\Services\AiUsageService;
+
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Http;
@@ -79,6 +81,10 @@ class AnimalController extends Controller
         ]);
 
 
+
+        if ($limitMessage = app(AiUsageService::class)->animalLimitMessage(auth()->user())) {
+            return back()->withInput()->withErrors(['plan_limit' => $limitMessage]);
+        }
 
         $validated['user_id'] = auth()->id();
 
@@ -219,6 +225,10 @@ class AnimalController extends Controller
         $animal = Animal::onlyTrashed()->findOrFail($id);
 
         $this->checkOwnership($animal);
+
+        if ($limitMessage = app(AiUsageService::class)->animalLimitMessage(auth()->user())) {
+            return redirect()->route('animals.archive')->with('error', $limitMessage)->with('show_plans_link', true);
+        }
 
         $animal->restore();
 

@@ -62,6 +62,11 @@ class PhotoAnalysisController extends Controller
 
         ]);
 
+        // Limit oshgan bo'lsa rasm saqlanmaydi va AI chaqirilmaydi
+        if ($denied = app(AiUsageService::class)->denyReason(auth()->user(), AiUsageLog::TYPE_VISION, $animal)) {
+            return back()->with('error', $denied['message'])->with('show_plans_link', $denied['upgrade']);
+        }
+
 
 
         $path = $request->file('photo')->store('animal-photos', 'public');
@@ -199,6 +204,10 @@ class PhotoAnalysisController extends Controller
             'question' => 'required|string|max:1000',
 
         ]);
+
+        if ($denied = app(AiUsageService::class)->denyReason(auth()->user(), AiUsageLog::TYPE_CHAT, $animal)) {
+            return back()->withInput()->with('error', $denied['message'])->with('show_plans_link', $denied['upgrade']);
+        }
 
 
 

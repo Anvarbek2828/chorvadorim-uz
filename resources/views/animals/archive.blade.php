@@ -39,6 +39,15 @@
 
             @endif
 
+            @if (session('error'))
+                <div class="mb-4 bg-red-100 text-red-700 p-3 rounded">
+                    {{ session('error') }}
+                    @if (session('show_plans_link'))
+                        @include('plans.partials.upgrade-link')
+                    @endif
+                </div>
+            @endif
+
 
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
