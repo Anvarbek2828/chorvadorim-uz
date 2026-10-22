@@ -211,5 +211,9 @@
     "Yo'q": "Нет",
     "ha": "да",
     "nofaol": "неактивен",
-    "yo'q": "нет"
+    "yo'q": "нет",
+    "Bu email bilan foydalanuvchi topilmadi: :email": "Пользователь с таким email не найден: :email",
+    ":email allaqachon admin.": ":email уже является администратором.",
+    ":email endi admin. Admin panel manzili: /admin": ":email теперь администратор. Адрес админ-панели: /admin",
+    "Diqqat: bu foydalanuvchi bloklangan, blokdan chiqarilmaguncha admin panelga kira olmaydi.": "Внимание: этот пользователь заблокирован и не сможет войти в админ-панель, пока его не разблокируют."
 }
