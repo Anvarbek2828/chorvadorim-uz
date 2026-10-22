@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class AdminAuditLog extends Model
+{
+    public const ACTION_USER_PLAN_CHANGED = 'user.plan_changed';
+    public const ACTION_USER_BLOCKED = 'user.blocked';
+    public const ACTION_USER_UNBLOCKED = 'user.unblocked';
+    public const ACTION_USER_MADE_ADMIN = 'user.made_admin';
+    public const ACTION_PLAN_UPDATED = 'plan.updated';
+
+    // Jadvalda faqat created_at bor
+    public const UPDATED_AT = null;
+
+    protected $fillable = [
+        'admin_id',
+        'amal',
+        'obyekt_turi',
+        'obyekt_id',
+        'eski_qiymat',
+        'yangi_qiymat',
+        'ip',
+    ];
+
+    protected $casts = [
+        'eski_qiymat' => 'array',
+        'yangi_qiymat' => 'array',
+    ];
+
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+}

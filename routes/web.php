@@ -86,6 +86,18 @@ Route::middleware('auth')->group(function () {
 
 });
 
+// Super admin panel: 'admin' middleware admin bo'lmaganlarga (mehmonlarga ham) 404 qaytaradi
+Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+    Route::patch('/users/{user}/plan', [App\Http\Controllers\Admin\UserController::class, 'updatePlan'])->name('users.plan');
+    Route::patch('/users/{user}/block', [App\Http\Controllers\Admin\UserController::class, 'toggleBlock'])->name('users.block');
+    Route::get('/ai-costs', [App\Http\Controllers\Admin\AiCostController::class, 'index'])->name('ai-costs');
+    Route::get('/plans', [App\Http\Controllers\Admin\PlanController::class, 'index'])->name('plans.index');
+    Route::patch('/plans/{plan}', [App\Http\Controllers\Admin\PlanController::class, 'update'])->name('plans.update');
+    Route::get('/audit-log', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-log');
+});
+
 
 
 require __DIR__.'/auth.php';

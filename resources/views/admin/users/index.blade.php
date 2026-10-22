@@ -1,0 +1,129 @@
+@use('App\Support\Money')
+
+<x-app-layout>
+    <x-slot name="header">
+        @include('admin.partials.header', ['title' => __('Foydalanuvchilar')])
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @include('admin.partials.flash')
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-wrap gap-2 mb-4">
+                    <input type="text" name="q" value="{{ $search }}" placeholder="{{ __('Ism, email yoki Telegram ID') }}" class="border-gray-300 rounded-md shadow-sm text-sm">
+                    <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700 text-sm">{{ __('Qidirish') }}</button>
+                    @if ($search !== '')
+                        <a href="{{ route('admin.users.index') }}" class="text-gray-600 hover:text-gray-900 text-sm self-center">{{ __('Tozalash') }}</a>
+                    @endif
+                </form>
+
+                <p class="text-xs text-gray-500 mb-3">{{ __("AI ishlatish va xarajat — shu oy bo'yicha.") }}</p>
+
+                @if ($users->isEmpty())
+                    <p class="text-gray-500">{{ __('Foydalanuvchi topilmadi.') }}</p>
+                @else
+                    <div class="adm-scroll">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ __('Foydalanuvchi') }}</th>
+                                    <th>{{ __('Tarif') }}</th>
+                                    <th class="adm-num">{{ __('Hayvonlar') }}</th>
+                                    <th class="adm-num">{{ __('AI chat') }}</th>
+                                    <th class="adm-num">{{ __('Rasm tahlili') }}</th>
+                                    <th class="adm-num">{{ __('Xarajat') }}</th>
+                                    <th>{{ __('Bot') }}</th>
+                                    <th>{{ __('Amallar') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($users as $user)
+                                    @php
+                                        $expired = $user->isPlanExpired();
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <div class="font-semibold">
+                                                {{ $user->name }}
+                                                @if ($user->is_admin)
+                                                    <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">{{ __('Admin') }}</span>
+                                                @endif
+                                                @if ($user->is_blocked)
+                                                    <span class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded">{{ __('Bloklangan') }}</span>
+                                                @endif
+                                            </div>
+                                            <div class="text-xs text-gray-500">#{{ $user->id }} · {{ $user->email }}</div>
+                                            <div class="text-xs text-gray-500">{{ __("Ro'yxatdan o'tgan") }}: {{ $user->created_at?->format('d.m.Y') }}</div>
+                                        </td>
+                                        <td>
+                                            {{ $user->plan?->nomi ?? \App\Models\Plan::free()->nomi }}
+                                            @if ($user->plan_tugash_sanasi)
+                                                <div class="text-xs {{ $expired ? 'text-red-600' : 'text-gray-500' }}">
+                                                    {{ $expired ? __('Muddati tugagan: :date', ['date' => $user->plan_tugash_sanasi->format('d.m.Y')]) : __(':date gacha', ['date' => $user->plan_tugash_sanasi->format('d.m.Y')]) }}
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="adm-num">{{ $user->animals_count }}</td>
+                                        <td class="adm-num">{{ $user->month_chat }}</td>
+                                        <td class="adm-num">{{ $user->month_vision }}</td>
+                                        <td class="adm-num">
+                                            {{ Money::usd((float) $user->month_cost) }}
+                                            <div class="text-xs text-gray-500">{{ Money::som((float) $user->month_cost) }}</div>
+                                        </td>
+                                        <td>
+                                            @if ($user->telegram_chat_id)
+                                                <span class="text-green-700">{{ __('Ulangan') }}</span>
+                                            @else
+                                                <span class="text-gray-400">{{ __("Yo'q") }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="adm-wrap">
+                                            <details>
+                                                <summary class="text-sm cursor-pointer">{{ __("Tarifni o'zgartirish") }}</summary>
+                                                <form method="POST" action="{{ route('admin.users.plan', $user) }}" class="mt-2 space-y-2">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <div>
+                                                        <label class="block text-xs text-gray-500">{{ __('Tarif') }}</label>
+                                                        <select name="plan_id" class="adm-input">
+                                                            @foreach ($plans as $plan)
+                                                                <option value="{{ $plan->id }}" @selected((int) $plan->id === (int) ($user->plan_id ?? \App\Models\Plan::free()->id))>{{ $plan->nomi }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs text-gray-500">{{ __('Tugash sanasi (bo\'sh — muddatsiz)') }}</label>
+                                                        <input type="date" name="plan_tugash_sanasi" value="{{ $user->plan_tugash_sanasi?->toDateString() }}" class="adm-input">
+                                                    </div>
+                                                    <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700 text-sm">{{ __('Saqlash') }}</button>
+                                                </form>
+                                            </details>
+
+                                            @if ($user->id !== auth()->id() && (!$user->is_admin || $user->is_blocked))
+                                                <form method="POST" action="{{ route('admin.users.block', $user) }}" class="mt-2"
+                                                      onsubmit="return confirm(@js($user->is_blocked ? __('Foydalanuvchini blokdan chiqarasizmi?') : __('Foydalanuvchini bloklaysizmi? U tizimga kira olmaydi.')))">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    @if ($user->is_blocked)
+                                                        <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded text-sm">{{ __('Blokdan chiqarish') }}</button>
+                                                    @else
+                                                        <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-sm">{{ __('Bloklash') }}</button>
+                                                    @endif
+                                                </form>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ $users->links() }}
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</x-app-layout>
