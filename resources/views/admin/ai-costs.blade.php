@@ -1,8 +1,10 @@
 @use('App\Support\Money')
 
 @php
-    $maxDay = max(0.000001, ...array_map(fn ($day) => $day['jami'], $days));
-    $periodTotal = array_sum(array_map(fn ($day) => $day['jami'], $days));
+    // $days kalitlari sana (string), shuning uchun spread emas, array_values ishlatiladi
+    $dayTotals = array_values(array_map(fn ($day) => $day['jami'], $days));
+    $maxDay = $dayTotals === [] ? 0 : max($dayTotals);
+    $periodTotal = array_sum($dayTotals);
 @endphp
 
 <x-app-layout>
@@ -43,7 +45,7 @@
                                     <td class="adm-num font-semibold">{{ Money::usd($day['jami']) }}</td>
                                     <td class="adm-num">{{ Money::som($day['jami']) }}</td>
                                     <td style="min-width: 8rem;">
-                                        <div class="adm-bar" style="width: {{ round($day['jami'] / $maxDay * 100) }}%"></div>
+                                        <div class="adm-bar" style="width: {{ $maxDay > 0 ? round($day['jami'] / $maxDay * 100) : 0 }}%"></div>
                                     </td>
                                 </tr>
                             @endforeach
