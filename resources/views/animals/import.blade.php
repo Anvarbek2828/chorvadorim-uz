@@ -48,6 +48,7 @@
 
                 <ol class="imp-steps space-y-1 text-sm text-gray-700">
                     <li>{{ __("Shablonni yuklab oling va Excel'da oching.") }}</li>
+                    <li>{{ __("Chip va pasport raqami ustunlarini avval Matn (Текстовый) formatiga o'tkazing.") }}</li>
                     <li>{{ __("Har bir hayvonni alohida qatorga yozing. Birinchi qatordagi ustun nomlarini o'zgartirmang, namuna qatorlarni o'chiring.") }}</li>
                     <li>{{ __('Faylni .xlsx yoki .csv formatida saqlab, quyida yuklang.') }}</li>
                     <li>{{ __("Ko'rib chiqish sahifasida natijani tekshiring va \"Tasdiqlash\" tugmasini bosing. Ungacha hech narsa saqlanmaydi.") }}</li>

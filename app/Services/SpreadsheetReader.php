@@ -276,8 +276,18 @@ class SpreadsheetReader
             return self::excelDate($number, $date1904) ?? $value;
         }
 
-        // 450.30000000000001 kabi ko'rinishlar va katta butun sonlarning E-yozuvi oldini olish
-        if (floor($number) === $number && abs($number) < 1e15) {
+        // Ilmiy ko'rinishda saqlangan yoki 15 xonadan uzun son Excel aniqligidan tashqarida (xonalar yo'qolgan):
+        // "E+" ko'rinishida qaytariladi, chip/pasport ustunlarida AnimalImportService buni xato deb belgilaydi
+        if (stripos($value, 'e') !== false) {
+            return preg_replace('/E(\d)/', 'E+$1', strtoupper($value));
+        }
+
+        if (abs($number) >= 1e15) {
+            return sprintf('%.15G', $number);
+        }
+
+        // 450.30000000000001 kabi ko'rinishlarning oldini olish
+        if (floor($number) === $number) {
             return sprintf('%.0f', $number);
         }
 

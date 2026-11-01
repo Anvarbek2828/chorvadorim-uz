@@ -320,5 +320,7 @@
     "Hayvonlar fayldan yuklandi": "Ҳайвонлар файлдан юкланди",
     "Tug'ilgan sana": "Туғилган сана",
     "Boshlang'ich vazn (kg)": "Бошланғич вазн (кг)",
-    "Chip raqami": "Чип рақами"
+    "Chip raqami": "Чип рақами",
+    ":field: Excel raqamni qisqartirgan. Excel'da shu ustunni belgilab, 'Формат ячеек → Текстовый' qiling va raqamni qayta yozing.": ":field: Excel рақамни қисқартирган. Excel'да шу устунни белгилаб, 'Формат ячеек → Текстовый' қилинг ва рақамни қайта ёзинг.",
+    "Chip va pasport raqami ustunlarini avval Matn (Текстовый) formatiga o'tkazing.": "Чип ва паспорт рақами устунларини аввал Матн (Текстовый) форматига ўтказинг."
 }

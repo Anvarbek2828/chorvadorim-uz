@@ -224,6 +224,7 @@ class AnimalImportService
                 'too_long' => __(':field juda uzun (ko\'pi bilan :max belgi).', $params),
                 'duplicate_file' => __('Bu pasport raqami faylning :line-qatorida ham bor.', $params),
                 'duplicate_db' => __('Bu pasport raqamiga ega hayvon tizimda allaqachon mavjud.'),
+                'scientific' => __(":field: Excel raqamni qisqartirgan. Excel'da shu ustunni belgilab, 'Формат ячеек → Текстовый' qiling va raqamni qayta yozing.", $params),
                 'limit' => __("Tarif limiti tufayli qo'shilmaydi."),
                 default => $error['code'],
             };
@@ -363,6 +364,13 @@ class AnimalImportService
         }
 
         $data['current_weight'] = $data['initial_weight'];
+
+        // Excel uzun raqamni "9,82E+14" ko'rinishiga qisqartiradi — asl xonalar yo'qolgan
+        foreach (['passport_number', 'chip_number'] as $field) {
+            if ($data[$field] !== null && preg_match('/^[+-]?\d+([.,]\d+)?\s*E[+-]\d+$/i', $data[$field])) {
+                $error('scientific', $field);
+            }
+        }
 
         // Bo'sh qoldirilsa: pasport raqami yozilgan bo'lsa — "bor" deb hisoblanadi
         $hasPassport = $this->normalize($raw['has_passport']);

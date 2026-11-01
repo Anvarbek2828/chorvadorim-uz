@@ -320,5 +320,7 @@
     "Hayvonlar fayldan yuklandi": "Животные загружены из файла",
     "Tug'ilgan sana": "Дата рождения",
     "Boshlang'ich vazn (kg)": "Начальный вес (кг)",
-    "Chip raqami": "Номер чипа"
+    "Chip raqami": "Номер чипа",
+    ":field: Excel raqamni qisqartirgan. Excel'da shu ustunni belgilab, 'Формат ячеек → Текстовый' qiling va raqamni qayta yozing.": ":field: Excel сократил число. Выделите этот столбец в Excel, выберите «Формат ячеек → Текстовый» и введите номер заново.",
+    "Chip va pasport raqami ustunlarini avval Matn (Текстовый) formatiga o'tkazing.": "Сначала переведите столбцы с номером чипа и паспорта в формат «Текстовый»."
 }
