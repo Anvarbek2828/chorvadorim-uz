@@ -16,11 +16,13 @@ use App\Models\KnowledgeBase;
 
 use App\Services\AiUsageService;
 
+use App\Services\OpenAiChat;
+
+use App\Services\OpenAiException;
+
 use App\Services\VisionImage;
 
 use Illuminate\Http\Request;
-
-use Illuminate\Support\Facades\Http;
 
 use Illuminate\Support\Facades\Storage;
 
@@ -88,62 +90,55 @@ class PhotoAnalysisController extends Controller
 
 
 
-        $response = Http::withToken(config('services.openai.api_key'))
+        // Model foydalanuvchi tarifidan olinadi
+        $model = auth()->user()->activePlan()->aiModel(AiUsageLog::TYPE_VISION);
 
-            ->timeout(60)
+        $messages = [
 
-            ->post('https://api.openai.com/v1/chat/completions', [
+            ['role' => 'system', 'content' => $systemPrompt],
 
-                'model' => 'gpt-4o-mini',
+            [
 
-                'messages' => [
+                'role' => 'user',
 
-                    ['role' => 'system', 'content' => $systemPrompt],
+                'content' => [
 
-                    [
+                    ['type' => 'text', 'text' => 'Ushbu hayvon rasmini tahlil qil va JSON formatida javob ber.'],
 
-                        'role' => 'user',
+                    ['type' => 'image_url', 'image_url' => [
 
-                        'content' => [
+                        'url' => "data:{$mimeType};base64,{$imageData}",
 
-                            ['type' => 'text', 'text' => 'Ushbu hayvon rasmini tahlil qil va JSON formatida javob ber.'],
-
-                            ['type' => 'image_url', 'image_url' => [
-
-                                'url' => "data:{$mimeType};base64,{$imageData}",
-
-                            ]],
-
-                        ],
-
-                    ],
+                    ]],
 
                 ],
 
-                'temperature' => 0.3,
+            ],
 
-                'response_format' => ['type' => 'json_object'],
-                'max_tokens' => (int) config('ai.vision_max_tokens', 600),
+        ];
 
-            ]);
-
-
-
-        if ($response->failed()) {
-
+        try {
+            $data = app(OpenAiChat::class)->complete(
+                $model,
+                $messages,
+                (int) config('ai.vision_max_tokens', 600),
+                0.3,
+                ['response_format' => ['type' => 'json_object']],
+                60
+            );
+        } catch (OpenAiException $e) {
             Storage::disk('public')->delete($path);
 
-            return back()->with('error', 'Rasmni tahlil qilishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.');
-
+            return back()->with('error', $e->userMessage('Rasmni tahlil qilishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.'));
         }
 
-        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_VISION, $response->json() ?? [], 'gpt-4o-mini');
+        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_VISION, $data, $model);
 
 
 
-        $raw = $response->json('choices.0.message.content');
+        $raw = data_get($data, 'choices.0.message.content');
 
-        $parsed = json_decode($raw, true);
+        $parsed = is_string($raw) ? json_decode($raw, true) : null;
 
 
 
@@ -217,40 +212,28 @@ class PhotoAnalysisController extends Controller
 
 
 
-        $response = Http::withToken(config('services.openai.api_key'))
+        // Model foydalanuvchi tarifidan olinadi
+        $model = auth()->user()->activePlan()->aiModel(AiUsageLog::TYPE_CHAT);
 
-            ->timeout(30)
+        $messages = [
 
-            ->post('https://api.openai.com/v1/chat/completions', [
+            ['role' => 'system', 'content' => $systemPrompt],
 
-                'model' => 'gpt-4o-mini',
+            ['role' => 'user', 'content' => $validated['question']],
 
-                'messages' => [
+        ];
 
-                    ['role' => 'system', 'content' => $systemPrompt],
-
-                    ['role' => 'user', 'content' => $validated['question']],
-
-                ],
-
-                'temperature' => 0.7,
-                'max_tokens' => (int) config('ai.chat_max_tokens', 800),
-
-            ]);
-
-
-
-        if ($response->failed()) {
-
-            return back()->with('error', 'AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.');
-
+        try {
+            $data = app(OpenAiChat::class)->complete($model, $messages, (int) config('ai.chat_max_tokens', 800), 0.7);
+        } catch (OpenAiException $e) {
+            return back()->with('error', $e->userMessage('AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.'));
         }
 
-        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $response->json() ?? [], 'gpt-4o-mini');
+        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $data, $model);
 
 
 
-        $answer = $response->json('choices.0.message.content') ?? 'Javob olishda muammo yuz berdi.';
+        $answer = data_get($data, 'choices.0.message.content') ?: 'Javob olishda muammo yuz berdi.';
 
         $formattedAnswer = $this->formatAnswer($answer);
 

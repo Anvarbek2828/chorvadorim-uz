@@ -14,9 +14,11 @@ use App\Models\KnowledgeBase;
 
 use App\Services\AiUsageService;
 
-use Illuminate\Http\Request;
+use App\Services\OpenAiChat;
 
-use Illuminate\Support\Facades\Http;
+use App\Services\OpenAiException;
+
+use Illuminate\Http\Request;
 
 
 
@@ -79,34 +81,20 @@ class ChatController extends Controller
 
 
 
-        $response = Http::withToken(config('services.openai.api_key'))
+        // Model foydalanuvchi tarifidan olinadi
+        $model = auth()->user()->activePlan()->aiModel(AiUsageLog::TYPE_CHAT);
 
-            ->timeout(30)
-
-            ->post('https://api.openai.com/v1/chat/completions', [
-
-                'model' => 'gpt-4o-mini',
-
-                'messages' => $messages,
-
-                'temperature' => 0.7,
-                'max_tokens' => (int) config('ai.chat_max_tokens', 800),
-
-            ]);
-
-
-
-        if ($response->failed()) {
-
-            return back()->with('error', 'AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.');
-
+        try {
+            $data = app(OpenAiChat::class)->complete($model, $messages, (int) config('ai.chat_max_tokens', 800), 0.7);
+        } catch (OpenAiException $e) {
+            return back()->with('error', $e->userMessage('AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.'));
         }
 
-        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $response->json() ?? [], 'gpt-4o-mini');
+        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $data, $model);
 
 
 
-        $answer = $response->json('choices.0.message.content') ?? 'Javob olishda muammo yuz berdi.';
+        $answer = data_get($data, 'choices.0.message.content') ?: 'Javob olishda muammo yuz berdi.';
 
         $formattedAnswer = $this->formatAnswer($answer);
 

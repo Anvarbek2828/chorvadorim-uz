@@ -171,7 +171,12 @@ class AiUsageService
     public function record(User $user, ?Animal $animal, string $type, array $response, string $requestedModel): ?AiUsageLog
     {
         $inputTokens = (int) data_get($response, 'usage.prompt_tokens', 0);
-        $outputTokens = (int) data_get($response, 'usage.completion_tokens', 0);
+        // Reasoning (o'ylash) tokenlari chiqish tokeni narxida hisoblanadi; OpenAI ularni
+        // completion_tokens ichida beradi, max() faqat bu qiymat kam kelgan holat uchun himoya
+        $outputTokens = max(
+            (int) data_get($response, 'usage.completion_tokens', 0),
+            (int) data_get($response, 'usage.completion_tokens_details.reasoning_tokens', 0)
+        );
         $model = (string) (data_get($response, 'model') ?: $requestedModel);
 
         try {

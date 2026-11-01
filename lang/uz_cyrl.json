@@ -215,5 +215,14 @@
     "Bu email bilan foydalanuvchi topilmadi: :email": "Бу email билан фойдаланувчи топилмади: :email",
     ":email allaqachon admin.": ":email аллақачон админ.",
     ":email endi admin. Admin panel manzili: /admin": ":email энди админ. Админ панел манзили: /admin",
-    "Diqqat: bu foydalanuvchi bloklangan, blokdan chiqarilmaguncha admin panelga kira olmaydi.": "Диққат: бу фойдаланувчи блокланган, блокдан чиқарилмагунча админ панелга кира олмайди."
+    "Diqqat: bu foydalanuvchi bloklangan, blokdan chiqarilmaguncha admin panelga kira olmaydi.": "Диққат: бу фойдаланувчи блокланган, блокдан чиқарилмагунча админ панелга кира олмайди.",
+    "Tanlangan AI modeli hozircha ishlamayapti. Iltimos, keyinroq qayta urinib ko'ring yoki administratorga murojaat qiling.": "Танланган AI модели ҳозирча ишламаяпти. Илтимос, кейинроқ қайта уриниб кўринг ёки администраторга мурожаат қилинг.",
+    "Chat modeli": "Чат модели",
+    "Rasm modeli": "Расм модели",
+    "narxi yo'q": "нархи йўқ",
+    "Modellar bo'yicha (oxirgi :days kun)": "Моделлар бўйича (охирги :days кун)",
+    "Model": "Модел",
+    "O'rtacha kirish tokeni": "Ўртача кириш токени",
+    "O'rtacha chiqish tokeni": "Ўртача чиқиш токени",
+    "O'rtacha narx": "Ўртача нарх"
 }

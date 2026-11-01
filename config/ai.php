@@ -13,16 +13,32 @@ return [
     |
     */
 
+    // Tarifda model tanlanmagan bo'lsa ishlatiladigan standart modellar
     'chat_model' => 'gpt-4o-mini',
 
     'vision_model' => 'gpt-4o-mini',
 
+    // Admin panelda tarif uchun faqat shu ro'yxatdagi modellarni tanlash mumkin
     'pricing' => [
         'gpt-4o-mini' => [
             'input' => 0.15,
             'output' => 0.60,
         ],
+        'gpt-5.4-mini' => [
+            'input' => 0.75,
+            'output' => 4.50,
+        ],
     ],
+
+    // Shu prefikslar bilan boshlanadigan modellar "o'ylaydigan" (reasoning) modellar:
+    // ularga max_tokens o'rniga max_completion_tokens yuboriladi, temperature yuborilmaydi
+    'reasoning_model_prefixes' => ['gpt-5', 'o1', 'o3', 'o4'],
+
+    // Reasoning darajasi. Model "none" ni qabul qilmasa, so'rov bir marta "low" bilan qaytariladi
+    'reasoning_effort' => 'none',
+
+    // Reasoning "none" bo'lmaganda o'ylash tokenlari javob limitini yeb qo'ymasligi uchun qo'shimcha joy
+    'reasoning_extra_tokens' => 1000,
 
     // Chat javobining eng ko'p uzunligi (token)
     'chat_max_tokens' => (int) env('AI_CHAT_MAX_TOKENS', 800),

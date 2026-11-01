@@ -19,6 +19,8 @@
         'max_hayvon' => __('Maks. hayvon'),
         'oylik_chat_limit' => __('Oylik chat limiti'),
         'oylik_vision_limit' => __('Oylik rasm limiti'),
+        'chat_model' => __('Chat modeli'),
+        'vision_model' => __('Rasm modeli'),
         'faol' => __('Faol'),
     ];
 

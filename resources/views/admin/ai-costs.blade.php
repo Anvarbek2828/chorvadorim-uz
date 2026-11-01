@@ -55,6 +55,45 @@
             </div>
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 class="font-semibold text-lg mb-4">{{ __("Modellar bo'yicha (oxirgi :days kun)", ['days' => $periodDays]) }}</h3>
+
+                @if ($modelStats->isEmpty())
+                    <p class="text-gray-500">{{ __("Hali ma'lumot yo'q.") }}</p>
+                @else
+                    <div class="adm-scroll">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ __('Model') }}</th>
+                                    <th class="adm-num">{{ __("So'rovlar") }}</th>
+                                    <th class="adm-num">{{ __("O'rtacha kirish tokeni") }}</th>
+                                    <th class="adm-num">{{ __("O'rtacha chiqish tokeni") }}</th>
+                                    <th class="adm-num">{{ __("O'rtacha narx") }}</th>
+                                    <th class="adm-num">{{ __('Jami xarajat') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($modelStats as $row)
+                                    <tr>
+                                        <td><code>{{ $row->model ?: '—' }}</code></td>
+                                        <td class="adm-num">{{ $row->soni }}</td>
+                                        <td class="adm-num">{{ number_format((float) $row->avg_input, 0, '.', ' ') }}</td>
+                                        <td class="adm-num">{{ number_format((float) $row->avg_output, 0, '.', ' ') }}</td>
+                                        <td class="adm-num">
+                                            {{-- Bitta so'rov narxi juda kichik, shuning uchun 6 xona --}}
+                                            ${{ number_format((float) $row->avg_narx, 6, '.', ' ') }}
+                                            <div class="text-xs text-gray-500">{{ Money::som((float) $row->avg_narx) }}</div>
+                                        </td>
+                                        <td class="adm-num">{{ Money::usd((float) $row->narx) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <h3 class="font-semibold text-lg mb-4">{{ __("Eng ko'p ishlatgan 10 foydalanuvchi (oxirgi :days kun)", ['days' => $periodDays]) }}</h3>
 
                 @if ($topUsers->isEmpty())

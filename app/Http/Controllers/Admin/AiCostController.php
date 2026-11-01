@@ -25,6 +25,7 @@ class AiCostController extends Controller
         return view('admin.ai-costs', [
             'days' => $this->dailyTotals($since, $tz),
             'topUsers' => $this->topUsers($since),
+            'modelStats' => $this->modelStats($since),
             'planAverages' => [
                 'current' => $this->planAverages($monthStart, now()->addMinute()),
                 'previous' => $this->planAverages($prevMonthStart, $monthStart),
@@ -77,6 +78,18 @@ class AiCostController extends Controller
             ->orderByDesc('narx')
             ->limit(10)
             ->with('user.plan')
+            ->get();
+    }
+
+    /**
+     * Har bir model (OpenAI javobidagi nomi bilan) bo'yicha so'rovlar soni, o'rtacha token va narx.
+     */
+    private function modelStats(Carbon $since)
+    {
+        return AiUsageLog::where('created_at', '>=', $since)
+            ->selectRaw('model, COUNT(*) as soni, AVG(input_tokens) as avg_input, AVG(output_tokens) as avg_output, AVG(narx_usd) as avg_narx, SUM(narx_usd) as narx')
+            ->groupBy('model')
+            ->orderByDesc('narx')
             ->get();
     }
 

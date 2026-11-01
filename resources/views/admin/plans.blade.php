@@ -1,3 +1,8 @@
+@php
+    // Tanlash mumkin bo'lgan modellar — config('ai.pricing') dagi narxi bor modellar
+    $pricedModels = array_keys(config('ai.pricing', []));
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
         @include('admin.partials.header', ['title' => __('Tariflar')])
@@ -22,6 +27,8 @@
                                 <th>{{ __('Maks. hayvon') }}</th>
                                 <th>{{ __('Oylik chat limiti') }}</th>
                                 <th>{{ __('Oylik rasm limiti') }}</th>
+                                <th>{{ __('Chat modeli') }}</th>
+                                <th>{{ __('Rasm modeli') }}</th>
                                 <th>{{ __('Faol') }}</th>
                                 <th class="adm-num">{{ __('Foydalanuvchilar') }}</th>
                                 <th></th>
@@ -45,6 +52,18 @@
                                     <td><input form="{{ $formId }}" type="number" name="max_hayvon" value="{{ $plan->max_hayvon }}" min="0" step="1" required class="adm-input" style="width: 6rem;"></td>
                                     <td><input form="{{ $formId }}" type="number" name="oylik_chat_limit" value="{{ $plan->oylik_chat_limit }}" min="0" step="1" required class="adm-input" style="width: 6rem;"></td>
                                     <td><input form="{{ $formId }}" type="number" name="oylik_vision_limit" value="{{ $plan->oylik_vision_limit }}" min="0" step="1" required class="adm-input" style="width: 6rem;"></td>
+                                    @foreach (['chat_model' => \App\Models\AiUsageLog::TYPE_CHAT, 'vision_model' => \App\Models\AiUsageLog::TYPE_VISION] as $field => $type)
+                                        <td>
+                                            <select form="{{ $formId }}" name="{{ $field }}" required class="adm-input" style="width: 10rem;">
+                                                @if ($plan->{$field} && !in_array($plan->{$field}, $pricedModels, true))
+                                                    <option value="{{ $plan->{$field} }}" selected>{{ $plan->{$field} }} ({{ __("narxi yo'q") }})</option>
+                                                @endif
+                                                @foreach ($pricedModels as $model)
+                                                    <option value="{{ $model }}" @selected($plan->aiModel($type) === $model)>{{ $model }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                    @endforeach
                                     <td><input form="{{ $formId }}" type="checkbox" name="faol" value="1" @checked($plan->faol)></td>
                                     <td class="adm-num">{{ $plan->users_count }}</td>
                                     <td>
