@@ -30,3 +30,6 @@ storage/*.key
 !.env.example
 /storage/logs/*
 !/storage/logs/.gitignore
+AUDIT_xavfsizlik.md
+ADMIN_PANEL_hisobot.md
+ADMIN_PANEL_reja.md
