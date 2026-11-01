@@ -11,7 +11,7 @@ use Illuminate\Validation\Rule;
 
 class PlanController extends Controller
 {
-    private const FIELDS = ['nomi', 'narx_som', 'max_hayvon', 'oylik_chat_limit', 'oylik_vision_limit', 'chat_model', 'vision_model', 'faol'];
+    private const FIELDS = ['nomi', 'narx_som', 'max_hayvon', 'max_staff', 'oylik_chat_limit', 'oylik_vision_limit', 'chat_model', 'vision_model', 'faol'];
 
     public function index()
     {
@@ -29,6 +29,7 @@ class PlanController extends Controller
             'nomi' => ['required', 'string', 'max:100'],
             'narx_som' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
             'max_hayvon' => ['required', 'integer', 'min:0', 'max:100000'],
+            'max_staff' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'oylik_chat_limit' => ['required', 'integer', 'min:0', 'max:1000000'],
             'oylik_vision_limit' => ['required', 'integer', 'min:0', 'max:1000000'],
             'chat_model' => ['required', 'string', Rule::in(array_filter([...$models, $plan->chat_model]))],
@@ -36,6 +37,8 @@ class PlanController extends Controller
         ]);
 
         $validated['narx_som'] = isset($validated['narx_som']) ? (int) $validated['narx_som'] : null;
+        // Bo'sh = cheksiz
+        $validated['max_staff'] = isset($validated['max_staff']) ? (int) $validated['max_staff'] : null;
         $validated['faol'] = $request->boolean('faol');
 
         $old = $plan->only(self::FIELDS);

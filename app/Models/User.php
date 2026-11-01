@@ -6,6 +6,8 @@ namespace App\Models;
 
 
 
+use App\Services\CurrentFarm;
+use App\Support\FarmPermissions;
 use Database\Factories\UserFactory;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -98,7 +100,52 @@ class User extends Authenticatable
         return $this->hasMany(AiUsageLog::class);
     }
 
+    public function farms()
+    {
+        return $this->belongsToMany(Farm::class)
+            ->using(FarmUser::class)
+            ->withPivot(['id', 'role', 'status', 'invited_by', 'must_change_password'])
+            ->withTimestamps();
+    }
+
+    public function farmMemberships()
+    {
+        return $this->hasMany(FarmUser::class);
+    }
+
+    public function ownedFarms()
+    {
+        return $this->hasMany(Farm::class, 'owner_id');
+    }
+
+    public function currentFarm()
+    {
+        return $this->belongsTo(Farm::class, 'current_farm_id');
+    }
+
     /**
+     * Joriy ferma (faqat faol a'zolik bo'yicha). A'zoligi bo'lmasa — null.
+     */
+    public function activeFarm(): ?Farm
+    {
+        return app(CurrentFarm::class)->farm($this);
+    }
+
+    public function farmRole(): ?string
+    {
+        return app(CurrentFarm::class)->role($this);
+    }
+
+    /**
+     * Joriy fermada shu huquq bormi (App\Support\FarmPermissions).
+     */
+    public function canInFarm(string $permission): bool
+    {
+        return FarmPermissions::allows($this->farmRole(), $permission);
+    }
+
+    /**
+     * Eski (Xodimlar A gacha) tarif ustunlari bo'yicha. Limitlar endi Farm::activePlan() dan olinadi.
      * Amaldagi tarif: tarif belgilanmagan yoki muddati o'tgan bo'lsa — bepul tarif.
      * Tugash sanasi kuni oxirigacha amal qiladi.
      */

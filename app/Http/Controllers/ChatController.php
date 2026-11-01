@@ -54,8 +54,10 @@ class ChatController extends Controller
 
         ]);
 
+        $farm = $this->currentFarm();
+
         // Limit oshgan bo'lsa AI umuman chaqirilmaydi
-        if ($denied = app(AiUsageService::class)->denyReason(auth()->user(), AiUsageLog::TYPE_CHAT, $animal)) {
+        if ($denied = app(AiUsageService::class)->denyReason($farm, AiUsageLog::TYPE_CHAT, $animal)) {
             return back()->withInput()->with('error', $denied['message'])->with('show_plans_link', $denied['upgrade']);
         }
 
@@ -81,8 +83,8 @@ class ChatController extends Controller
 
 
 
-        // Model foydalanuvchi tarifidan olinadi
-        $model = auth()->user()->activePlan()->aiModel(AiUsageLog::TYPE_CHAT);
+        // Model ferma tarifidan olinadi
+        $model = $farm->activePlan()->aiModel(AiUsageLog::TYPE_CHAT);
 
         try {
             $data = app(OpenAiChat::class)->complete($model, $messages, (int) config('ai.chat_max_tokens', 800), 0.7);
@@ -90,7 +92,7 @@ class ChatController extends Controller
             return back()->with('error', $e->userMessage('AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.'));
         }
 
-        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $data, $model);
+        app(AiUsageService::class)->record(auth()->user(), $farm, $animal, AiUsageLog::TYPE_CHAT, $data, $model);
 
 
 
@@ -374,17 +376,7 @@ class ChatController extends Controller
 
     {
 
-        $animalUserId = (int) $animal->user_id;
-
-        $currentUserId = (int) auth()->id();
-
-
-
-        if ($animalUserId !== $currentUserId) {
-
-            abort(403, 'Sizga bu ma\'lumotni ko\'rish huquqi berilmagan.');
-
-        }
+        $this->ensureAnimalInFarm($animal);
 
     }
 

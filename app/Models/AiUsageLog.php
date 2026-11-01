@@ -13,6 +13,7 @@ class AiUsageLog extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
+        'farm_id',
         'user_id',
         'animal_id',
         'turi',
@@ -27,6 +28,11 @@ class AiUsageLog extends Model
         'output_tokens' => 'integer',
         'narx_usd' => 'decimal:6',
     ];
+
+    public function farm()
+    {
+        return $this->belongsTo(Farm::class);
+    }
 
     public function user()
     {

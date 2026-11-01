@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Animal;
+use App\Models\Farm;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -114,7 +115,7 @@ class AnimalImportService
      *
      * @return array{rows: array, summary: array{total: int, ok: int, error: int, limit: int, max_animals: int, current_animals: int}}
      */
-    public function validate(User $user, array $rows): array
+    public function validate(Farm $farm, array $rows): array
     {
         $firstLineByPassport = [];
         $passports = [];
@@ -149,8 +150,8 @@ class AnimalImportService
                 });
         }
 
-        $maxAnimals = $user->activePlan()->max_hayvon;
-        $currentAnimals = Animal::where('user_id', $user->id)->count();
+        $maxAnimals = $farm->activePlan()->max_hayvon;
+        $currentAnimals = Animal::where('farm_id', $farm->id)->count();
         $available = max(0, $maxAnimals - $currentAnimals);
         $summary = ['total' => count($rows), 'ok' => 0, 'error' => 0, 'limit' => 0, 'max_animals' => $maxAnimals, 'current_animals' => $currentAnimals];
 
@@ -180,20 +181,20 @@ class AnimalImportService
 
     /**
      * Qatorlarni qayta tekshirib (baza holati o'zgargan bo'lishi mumkin), faqat to'g'rilarini
-     * bitta tranzaksiyada qo'shadi. Natijada 'added' — qo'shilganlar soni.
+     * bitta tranzaksiyada fermaga qo'shadi ($creator — hayvonlarning user_id si). Natijada 'added' — qo'shilganlar soni.
      */
-    public function import(User $user, array $rows): array
+    public function import(Farm $farm, User $creator, array $rows): array
     {
-        return DB::transaction(function () use ($user, $rows) {
-            // Bir foydalanuvchiga parallel importlar limitni chetlab o'tmasligi uchun
-            User::whereKey($user->id)->lockForUpdate()->first();
+        return DB::transaction(function () use ($farm, $creator, $rows) {
+            // Bir fermaga parallel importlar limitni chetlab o'tmasligi uchun
+            Farm::whereKey($farm->id)->lockForUpdate()->first();
 
-            $result = $this->validate($user, $rows);
+            $result = $this->validate($farm, $rows);
             $added = 0;
 
             foreach ($result['rows'] as $row) {
                 if ($row['status'] === self::STATUS_OK) {
-                    $user->animals()->create($row['data']);
+                    $farm->animals()->create($row['data'] + ['user_id' => $creator->id]);
                     $added++;
                 }
             }

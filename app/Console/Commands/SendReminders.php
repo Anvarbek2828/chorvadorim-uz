@@ -32,7 +32,7 @@ class SendReminders extends Command
 
             ->whereDate('due_date', '<=', now()->toDateString())
 
-            ->with('animal.user')
+            ->with(['animal.farm.owner', 'animal.user'])
 
             ->get();
 
@@ -46,7 +46,8 @@ class SendReminders extends Command
 
         foreach ($reminders as $reminder) {
 
-            $user = $reminder->animal->user;
+            // Eslatma ferma egasiga yuboriladi (arxivdagi hayvonniki o'tkazib yuboriladi)
+            $user = $reminder->animal?->farm?->owner ?? $reminder->animal?->user;
 
 
 

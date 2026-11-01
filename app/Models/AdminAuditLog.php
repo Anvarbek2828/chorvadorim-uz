@@ -17,6 +17,7 @@ class AdminAuditLog extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
+        'farm_id',
         'admin_id',
         'amal',
         'obyekt_turi',
@@ -30,6 +31,11 @@ class AdminAuditLog extends Model
         'eski_qiymat' => 'array',
         'yangi_qiymat' => 'array',
     ];
+
+    public function farm()
+    {
+        return $this->belongsTo(Farm::class);
+    }
 
     public function admin()
     {

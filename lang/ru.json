@@ -322,5 +322,12 @@
     "Boshlang'ich vazn (kg)": "Начальный вес (кг)",
     "Chip raqami": "Номер чипа",
     ":field: Excel raqamni qisqartirgan. Excel'da shu ustunni belgilab, 'Формат ячеек → Текстовый' qiling va raqamni qayta yozing.": ":field: Excel сократил число. Выделите этот столбец в Excel, выберите «Формат ячеек → Текстовый» и введите номер заново.",
-    "Chip va pasport raqami ustunlarini avval Matn (Текстовый) formatiga o'tkazing.": "Сначала переведите столбцы с номером чипа и паспорта в формат «Текстовый»."
+    "Chip va pasport raqami ustunlarini avval Matn (Текстовый) formatiga o'tkazing.": "Сначала переведите столбцы с номером чипа и паспорта в формат «Текстовый».",
+    "Siz hech qaysi fermaga a'zo emassiz yoki a'zoligingiz to'xtatilgan. Ferma egasiga yoki administratsiyaga murojaat qiling.": "Вы не состоите ни в одной ферме или ваше членство приостановлено. Обратитесь к владельцу фермы или в администрацию.",
+    "Bu amal uchun huquqingiz yo'q.": "У вас нет прав на это действие.",
+    "Bu foydalanuvchining o'z fermasi yo'q.": "У этого пользователя нет собственной фермы.",
+    "Maks. xodim": "Макс. сотрудников",
+    "cheksiz": "без ограничений",
+    "Bo'sh qoldirilsa — cheksiz": "Если оставить пустым — без ограничений",
+    "Maks. xodim bo'sh qoldirilsa — cheksiz.": "Если «Макс. сотрудников» оставить пустым — без ограничений."
 }

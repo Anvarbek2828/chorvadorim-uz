@@ -322,5 +322,12 @@
     "Boshlang'ich vazn (kg)": "Бошланғич вазн (кг)",
     "Chip raqami": "Чип рақами",
     ":field: Excel raqamni qisqartirgan. Excel'da shu ustunni belgilab, 'Формат ячеек → Текстовый' qiling va raqamni qayta yozing.": ":field: Excel рақамни қисқартирган. Excel'да шу устунни белгилаб, 'Формат ячеек → Текстовый' қилинг ва рақамни қайта ёзинг.",
-    "Chip va pasport raqami ustunlarini avval Matn (Текстовый) formatiga o'tkazing.": "Чип ва паспорт рақами устунларини аввал Матн (Текстовый) форматига ўтказинг."
+    "Chip va pasport raqami ustunlarini avval Matn (Текстовый) formatiga o'tkazing.": "Чип ва паспорт рақами устунларини аввал Матн (Текстовый) форматига ўтказинг.",
+    "Siz hech qaysi fermaga a'zo emassiz yoki a'zoligingiz to'xtatilgan. Ferma egasiga yoki administratsiyaga murojaat qiling.": "Сиз ҳеч қайси фермага аъзо эмассиз ёки аъзолигингиз тўхтатилган. Ферма эгасига ёки маъмуриятга мурожаат қилинг.",
+    "Bu amal uchun huquqingiz yo'q.": "Бу амал учун ҳуқуқингиз йўқ.",
+    "Bu foydalanuvchining o'z fermasi yo'q.": "Бу фойдаланувчининг ўз фермаси йўқ.",
+    "Maks. xodim": "Макс. ходим",
+    "cheksiz": "чексиз",
+    "Bo'sh qoldirilsa — cheksiz": "Бўш қолдирилса — чексиз",
+    "Maks. xodim bo'sh qoldirilsa — cheksiz.": "Макс. ходим бўш қолдирилса — чексиз."
 }

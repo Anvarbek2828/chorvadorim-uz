@@ -12,6 +12,7 @@ class Plan extends Model
         'nomi',
         'narx_som',
         'max_hayvon',
+        'max_staff',
         'oylik_chat_limit',
         'oylik_vision_limit',
         'chat_model',
@@ -22,6 +23,7 @@ class Plan extends Model
     protected $casts = [
         'narx_som' => 'integer',
         'max_hayvon' => 'integer',
+        'max_staff' => 'integer',
         'oylik_chat_limit' => 'integer',
         'oylik_vision_limit' => 'integer',
         'faol' => 'boolean',
@@ -30,6 +32,11 @@ class Plan extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function farms()
+    {
+        return $this->hasMany(Farm::class);
     }
 
     /**
@@ -44,6 +51,7 @@ class Plan extends Model
                 'nomi' => 'Free',
                 'narx_som' => null,
                 'max_hayvon' => 10,
+                'max_staff' => 0,
                 'oylik_chat_limit' => 20,
                 'oylik_vision_limit' => 3,
                 'faol' => true,

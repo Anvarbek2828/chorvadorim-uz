@@ -64,8 +64,10 @@ class PhotoAnalysisController extends Controller
 
         ]);
 
+        $farm = $this->currentFarm();
+
         // Limit oshgan bo'lsa rasm saqlanmaydi va AI chaqirilmaydi
-        if ($denied = app(AiUsageService::class)->denyReason(auth()->user(), AiUsageLog::TYPE_VISION, $animal)) {
+        if ($denied = app(AiUsageService::class)->denyReason($farm, AiUsageLog::TYPE_VISION, $animal)) {
             return back()->with('error', $denied['message'])->with('show_plans_link', $denied['upgrade']);
         }
 
@@ -90,8 +92,8 @@ class PhotoAnalysisController extends Controller
 
 
 
-        // Model foydalanuvchi tarifidan olinadi
-        $model = auth()->user()->activePlan()->aiModel(AiUsageLog::TYPE_VISION);
+        // Model ferma tarifidan olinadi
+        $model = $farm->activePlan()->aiModel(AiUsageLog::TYPE_VISION);
 
         $messages = [
 
@@ -132,7 +134,7 @@ class PhotoAnalysisController extends Controller
             return back()->with('error', $e->userMessage('Rasmni tahlil qilishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.'));
         }
 
-        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_VISION, $data, $model);
+        app(AiUsageService::class)->record(auth()->user(), $farm, $animal, AiUsageLog::TYPE_VISION, $data, $model);
 
 
 
@@ -186,9 +188,9 @@ class PhotoAnalysisController extends Controller
 
 
 
-        if ($analysis->animal_id !== $animal->id) {
+        if ((int) $analysis->animal_id !== (int) $animal->id) {
 
-            abort(403);
+            abort(404);
 
         }
 
@@ -200,7 +202,9 @@ class PhotoAnalysisController extends Controller
 
         ]);
 
-        if ($denied = app(AiUsageService::class)->denyReason(auth()->user(), AiUsageLog::TYPE_CHAT, $animal)) {
+        $farm = $this->currentFarm();
+
+        if ($denied = app(AiUsageService::class)->denyReason($farm, AiUsageLog::TYPE_CHAT, $animal)) {
             return back()->withInput()->with('error', $denied['message'])->with('show_plans_link', $denied['upgrade']);
         }
 
@@ -212,8 +216,8 @@ class PhotoAnalysisController extends Controller
 
 
 
-        // Model foydalanuvchi tarifidan olinadi
-        $model = auth()->user()->activePlan()->aiModel(AiUsageLog::TYPE_CHAT);
+        // Model ferma tarifidan olinadi
+        $model = $farm->activePlan()->aiModel(AiUsageLog::TYPE_CHAT);
 
         $messages = [
 
@@ -229,7 +233,7 @@ class PhotoAnalysisController extends Controller
             return back()->with('error', $e->userMessage('AI bilan bog\'lanishda xatolik yuz berdi. Birozdan so\'ng qayta urinib ko\'ring.'));
         }
 
-        app(AiUsageService::class)->record(auth()->user(), $animal, AiUsageLog::TYPE_CHAT, $data, $model);
+        app(AiUsageService::class)->record(auth()->user(), $farm, $animal, AiUsageLog::TYPE_CHAT, $data, $model);
 
 
 
@@ -265,9 +269,9 @@ class PhotoAnalysisController extends Controller
 
 
 
-        if ($analysis->animal_id !== $animal->id) {
+        if ((int) $analysis->animal_id !== (int) $animal->id) {
 
-            abort(403);
+            abort(404);
 
         }
 
@@ -523,17 +527,7 @@ class PhotoAnalysisController extends Controller
 
     {
 
-        $animalUserId = (int) $animal->user_id;
-
-        $currentUserId = (int) auth()->id();
-
-
-
-        if ($animalUserId !== $currentUserId) {
-
-            abort(403, 'Sizga bu ma\'lumotni ko\'rish huquqi berilmagan.');
-
-        }
+        $this->ensureAnimalInFarm($animal);
 
     }
 

@@ -62,7 +62,7 @@ class IncomeController extends Controller
 
         if ((int) $income->animal_id !== (int) $animal->id) {
 
-            abort(403);
+            abort(404);
 
         }
 
@@ -82,17 +82,7 @@ class IncomeController extends Controller
 
     {
 
-        $animalUserId = (int) $animal->user_id;
-
-        $currentUserId = (int) auth()->id();
-
-
-
-        if ($animalUserId !== $currentUserId) {
-
-            abort(403, 'Sizga bu ma\'lumotni ko\'rish huquqi berilmagan.');
-
-        }
+        $this->ensureAnimalInFarm($animal);
 
     }
 

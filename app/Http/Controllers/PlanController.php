@@ -12,12 +12,13 @@ class PlanController extends Controller
      */
     public function index(AiUsageService $usage)
     {
-        $user = auth()->user();
+        // Tarif fermaga tegishli
+        $farm = $this->currentFarm();
 
         return view('plans.index', [
-            'summary' => $usage->summary($user),
-            'planExpired' => $user->plan_id !== null && $user->isPlanExpired(),
-            'planEndsAt' => $user->isPlanExpired() ? null : $user->plan_tugash_sanasi,
+            'summary' => $usage->summary($farm),
+            'planExpired' => $farm->plan_id !== null && $farm->isPlanExpired(),
+            'planEndsAt' => $farm->isPlanExpired() ? null : $farm->plan_tugash_sanasi,
             'plans' => Plan::where('faol', true)->orderBy('max_hayvon')->get(),
         ]);
     }

@@ -10,6 +10,8 @@ use App\Models\Animal;
 
 use App\Models\BankAnimalWatcher;
 
+use App\Models\Farm;
+
 use App\Models\TelegramLinkCode;
 
 use App\Models\User;
@@ -256,7 +258,8 @@ class TelegramController extends Controller
         }
 
         $animal = $animals->first();
-        $owner = $animal->user;
+        // So'rov ferma egasiga boradi
+        $owner = $animal->farm?->owner ?? $animal->user;
 
         if (!$owner || !$owner->telegram_chat_id) {
             $this->sendMessage($chatId, $this->trilingual("Hayvon egasi Telegram botga ulanmagan, shuning uchun kuzatuv so'rovi rad etildi."));
@@ -320,8 +323,18 @@ class TelegramController extends Controller
             return;
         }
 
+        if (!$farm = $this->farmFor($user, $chatId)) {
+            return;
+        }
+
+        // Kuzatuvga ruxsat berish/bekor qilish — ferma egasining ishi
+        if (!$user->canInFarm('farm.settings')) {
+            $this->sendMessage($chatId, $this->trilingual("Bu amal uchun huquqingiz yo'q."));
+            return;
+        }
+
         $watchers = BankAnimalWatcher::where('status', BankAnimalWatcher::STATUS_APPROVED)
-            ->whereHas('animal', fn ($q) => $q->withTrashed()->where('user_id', $user->id))
+            ->whereHas('animal', fn ($q) => $q->withTrashed()->where('farm_id', $farm->id))
             ->with(['animal' => fn ($q) => $q->withTrashed()])
             ->limit(50)
             ->get();
@@ -357,9 +370,9 @@ class TelegramController extends Controller
 
         [, $action, $watcherId] = $matches;
 
-        $watcher = BankAnimalWatcher::with(['animal' => fn ($q) => $q->withTrashed(), 'animal.user'])->find($watcherId);
+        $watcher = BankAnimalWatcher::with(['animal' => fn ($q) => $q->withTrashed(), 'animal.farm.owner', 'animal.user'])->find($watcherId);
         $animal = $watcher?->animal;
-        $owner = $animal?->user;
+        $owner = $animal?->farm?->owner ?? $animal?->user;
 
         $expectedStatus = $action === 'revoke' ? BankAnimalWatcher::STATUS_APPROVED : BankAnimalWatcher::STATUS_PENDING;
 
@@ -445,7 +458,11 @@ class TelegramController extends Controller
 
 
 
-        $animals = $user->animals;
+        if (!$farm = $this->farmFor($user, $chatId)) {
+            return;
+        }
+
+        $animals = $farm->animals;
 
 
 
@@ -495,9 +512,12 @@ class TelegramController extends Controller
 
 
 
-        if ($user) {
+        // Bog'langan foydalanuvchi — joriy fermasining hayvonlari ichidan
+        $farm = $user?->activeFarm();
 
-            $animal = $user->animals()->where('name', 'like', "%{$text}%")->first();
+        if ($farm && $user->canInFarm('animals.view')) {
+
+            $animal = $farm->animals()->where('name', 'like', "%{$text}%")->first();
 
             if ($animal) {
 
@@ -544,6 +564,22 @@ class TelegramController extends Controller
     }
 
 
+
+    /**
+     * Bog'langan foydalanuvchining joriy fermasi; faol a'zoligi bo'lmasa xabar yuborib null qaytaradi.
+     */
+    private function farmFor(User $user, string $chatId): ?Farm
+    {
+        $farm = $user->activeFarm();
+
+        if (!$farm || !$user->canInFarm('animals.view')) {
+            $this->sendMessage($chatId, $this->trilingual("Siz hech qaysi fermaga a'zo emassiz yoki a'zoligingiz to'xtatilgan. Ferma egasiga yoki administratsiyaga murojaat qiling."));
+
+            return null;
+        }
+
+        return $farm;
+    }
 
     private function formatAnimalStatus(Animal $animal): string
 

@@ -54,9 +54,9 @@ class ReminderController extends Controller
 
 
 
-        if ($reminder->animal_id !== $animal->id) {
+        if ((int) $reminder->animal_id !== (int) $animal->id) {
 
-            abort(403);
+            abort(404);
 
         }
 
@@ -76,11 +76,7 @@ class ReminderController extends Controller
 
     {
 
-        if ((int) $animal->user_id !== (int) auth()->id()) {
-
-            abort(403, "Sizga bu ma'lumotni ko'rish huquqi berilmagan.");
-
-        }
+        $this->ensureAnimalInFarm($animal);
 
     }
 

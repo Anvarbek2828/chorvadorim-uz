@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'farm' => \App\Http\Middleware\EnsureCurrentFarm::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

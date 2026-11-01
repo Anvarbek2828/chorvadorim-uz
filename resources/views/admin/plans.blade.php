@@ -15,6 +15,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <p class="text-sm text-gray-500 mb-4">
                     {{ __("Narx bo'sh qoldirilsa, foydalanuvchiga «Narx bo'yicha murojaat qiling» deb ko'rsatiladi. Nofaol tarif foydalanuvchilar sahifasida ko'rinmaydi, lekin unga biriktirilgan foydalanuvchilar limitlari saqlanadi. Kunlik AI limiti — oylik limitning 1/10 qismi (kamida 3).") }}
+                    {{ __("Maks. xodim bo'sh qoldirilsa — cheksiz.") }}
                 </p>
 
                 <div class="adm-scroll">
@@ -25,6 +26,7 @@
                                 <th>{{ __('Nomi') }}</th>
                                 <th>{{ __("Narx (so'm / oy)") }}</th>
                                 <th>{{ __('Maks. hayvon') }}</th>
+                                <th>{{ __('Maks. xodim') }}</th>
                                 <th>{{ __('Oylik chat limiti') }}</th>
                                 <th>{{ __('Oylik rasm limiti') }}</th>
                                 <th>{{ __('Chat modeli') }}</th>
@@ -50,6 +52,7 @@
                                     <td><input form="{{ $formId }}" type="text" name="nomi" value="{{ $plan->nomi }}" maxlength="100" required class="adm-input" style="width: 8rem;"></td>
                                     <td><input form="{{ $formId }}" type="number" name="narx_som" value="{{ $plan->narx_som }}" min="0" step="1" placeholder="—" class="adm-input" style="width: 9rem;"></td>
                                     <td><input form="{{ $formId }}" type="number" name="max_hayvon" value="{{ $plan->max_hayvon }}" min="0" step="1" required class="adm-input" style="width: 6rem;"></td>
+                                    <td><input form="{{ $formId }}" type="number" name="max_staff" value="{{ $plan->max_staff }}" min="0" step="1" placeholder="{{ __('cheksiz') }}" title="{{ __("Bo'sh qoldirilsa — cheksiz") }}" class="adm-input" style="width: 6rem;"></td>
                                     <td><input form="{{ $formId }}" type="number" name="oylik_chat_limit" value="{{ $plan->oylik_chat_limit }}" min="0" step="1" required class="adm-input" style="width: 6rem;"></td>
                                     <td><input form="{{ $formId }}" type="number" name="oylik_vision_limit" value="{{ $plan->oylik_vision_limit }}" min="0" step="1" required class="adm-input" style="width: 6rem;"></td>
                                     @foreach (['chat_model' => \App\Models\AiUsageLog::TYPE_CHAT, 'vision_model' => \App\Models\AiUsageLog::TYPE_VISION] as $field => $type)

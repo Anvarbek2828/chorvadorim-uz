@@ -8,9 +8,9 @@ class AdminAuditService
 {
     /**
      * Admin amalini jurnalga yozadi. Faqat haqiqatan o'zgargan maydonlar saqlanadi;
-     * hech narsa o'zgarmagan bo'lsa, yozuv qo'shilmaydi.
+     * hech narsa o'zgarmagan bo'lsa, yozuv qo'shilmaydi. $farmId — amal tegishli ferma (platforma amallarida null).
      */
-    public function log(string $action, string $objectType, ?int $objectId, array $old, array $new, ?int $adminId = null, ?string $ip = null): ?AdminAuditLog
+    public function log(string $action, string $objectType, ?int $objectId, array $old, array $new, ?int $adminId = null, ?string $ip = null, ?int $farmId = null): ?AdminAuditLog
     {
         $changedKeys = array_keys(array_filter(
             $new,
@@ -23,6 +23,7 @@ class AdminAuditService
         }
 
         return AdminAuditLog::create([
+            'farm_id' => $farmId,
             'admin_id' => $adminId ?? auth()->id(),
             'amal' => $action,
             'obyekt_turi' => $objectType,

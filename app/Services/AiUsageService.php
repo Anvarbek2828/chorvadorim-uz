@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AiUsageLog;
 use App\Models\Animal;
+use App\Models\Farm;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -12,12 +13,12 @@ use Throwable;
 class AiUsageService
 {
     /**
-     * AI chaqirilishidan OLDIN tekshiriladi. Ruxsat bo'lsa null, aks holda foydalanuvchiga
-     * ko'rsatiladigan xabar va tariflar sahifasiga havola kerakmi — shu qaytadi.
+     * AI chaqirilishidan OLDIN tekshiriladi. Limitlar ferma tarifidan, ishlatish ferma bo'yicha hisoblanadi.
+     * Ruxsat bo'lsa null, aks holda foydalanuvchiga ko'rsatiladigan xabar va tariflar sahifasiga havola kerakmi — shu qaytadi.
      *
      * @return array{message: string, upgrade: bool}|null
      */
-    public function denyReason(User $user, string $type, ?Animal $animal = null): ?array
+    public function denyReason(Farm $farm, string $type, ?Animal $animal = null): ?array
     {
         if ($this->isPlatformBudgetExceeded()) {
             return [
@@ -27,8 +28,8 @@ class AiUsageService
         }
 
         $isVision = $type === AiUsageLog::TYPE_VISION;
-        $monthlyLimit = $user->activePlan()->monthlyLimit($type);
-        $monthlyUsed = $this->usageCount($user, $type, $this->monthStart());
+        $monthlyLimit = $farm->activePlan()->monthlyLimit($type);
+        $monthlyUsed = $this->usageCount($farm, $type, $this->monthStart());
 
         if ($monthlyUsed >= $monthlyLimit) {
             $params = [
@@ -46,7 +47,7 @@ class AiUsageService
         }
 
         $dailyLimit = $this->dailyLimit($monthlyLimit);
-        $dailyUsed = $this->usageCount($user, $type, $this->dayStart());
+        $dailyUsed = $this->usageCount($farm, $type, $this->dayStart());
 
         if ($dailyUsed >= $dailyLimit) {
             $params = [
@@ -84,11 +85,11 @@ class AiUsageService
     /**
      * Faol (arxivda bo'lmagan) hayvonlar soni tarifdagi chegaraga yetgan bo'lsa, xabar qaytaradi.
      */
-    public function animalLimitMessage(User $user): ?string
+    public function animalLimitMessage(Farm $farm): ?string
     {
-        $limit = $user->activePlan()->max_hayvon;
+        $limit = $farm->activePlan()->max_hayvon;
 
-        if (Animal::where('user_id', $user->id)->count() < $limit) {
+        if (Animal::where('farm_id', $farm->id)->count() < $limit) {
             return null;
         }
 
@@ -96,23 +97,23 @@ class AiUsageService
     }
 
     /**
-     * Tariflar sahifasi uchun foydalanuvchining joriy holati.
+     * Tariflar sahifasi uchun fermaning joriy holati.
      */
-    public function summary(User $user): array
+    public function summary(Farm $farm): array
     {
-        $plan = $user->activePlan();
+        $plan = $farm->activePlan();
         $result = [
             'plan' => $plan,
-            'animals' => Animal::where('user_id', $user->id)->count(),
+            'animals' => Animal::where('farm_id', $farm->id)->count(),
             'resets_at' => $this->nextMonthStartLocal(),
         ];
 
         foreach ([AiUsageLog::TYPE_CHAT, AiUsageLog::TYPE_VISION] as $type) {
             $monthly = $plan->monthlyLimit($type);
             $result[$type] = [
-                'month_used' => $this->usageCount($user, $type, $this->monthStart()),
+                'month_used' => $this->usageCount($farm, $type, $this->monthStart()),
                 'month_limit' => $monthly,
-                'today_used' => $this->usageCount($user, $type, $this->dayStart()),
+                'today_used' => $this->usageCount($farm, $type, $this->dayStart()),
                 'today_limit' => $this->dailyLimit($monthly),
             ];
         }
@@ -127,9 +128,9 @@ class AiUsageService
         return max((int) config('ai.daily_limit_min', 3), intdiv($monthlyLimit, $divisor));
     }
 
-    public function usageCount(User $user, string $type, Carbon $since): int
+    public function usageCount(Farm $farm, string $type, Carbon $since): int
     {
-        return AiUsageLog::where('user_id', $user->id)
+        return AiUsageLog::where('farm_id', $farm->id)
             ->where('turi', $type)
             ->where('created_at', '>=', $since)
             ->count();
@@ -165,10 +166,10 @@ class AiUsageService
     }
 
     /**
-     * OpenAI javobidagi usage qiymatlari bo'yicha xarajat yozuvini qo'shadi.
+     * OpenAI javobidagi usage qiymatlari bo'yicha xarajat yozuvini qo'shadi ($user — so'rovni bergan, $farm — hisob kimga).
      * Yozib bo'lmasa ham foydalanuvchi javobini yo'qotmasligi uchun xato faqat jurnalga yoziladi.
      */
-    public function record(User $user, ?Animal $animal, string $type, array $response, string $requestedModel): ?AiUsageLog
+    public function record(User $user, Farm $farm, ?Animal $animal, string $type, array $response, string $requestedModel): ?AiUsageLog
     {
         $inputTokens = (int) data_get($response, 'usage.prompt_tokens', 0);
         // Reasoning (o'ylash) tokenlari chiqish tokeni narxida hisoblanadi; OpenAI ularni
@@ -181,6 +182,7 @@ class AiUsageService
 
         try {
             return AiUsageLog::create([
+                'farm_id' => $farm->id,
                 'user_id' => $user->id,
                 'animal_id' => $animal?->id,
                 'turi' => $type,

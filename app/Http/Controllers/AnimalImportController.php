@@ -17,8 +17,8 @@ use Illuminate\Support\Str;
  * Hayvonlarni fayldan yuklash: 1) fayl o'qiladi va tekshiriladi (bazaga hech narsa yozilmaydi),
  * 2) "Tasdiqlash"da faqat to'g'ri qatorlar qo'shiladi.
  *
- * Bir xil amallar ikki joyda ishlatiladi: /animals/import (foydalanuvchi o'ziga) va
- * /admin/users/{user}/import (admin foydalanuvchi nomidan, audit jurnaliga yoziladi).
+ * Bir xil amallar ikki joyda ishlatiladi: /animals/import (joriy fermaga) va
+ * /admin/users/{user}/import (admin foydalanuvchi nomidan uning fermasiga, audit jurnaliga yoziladi).
  * Shuning uchun {user} va {token} marshrut parametrlari $request->route() orqali olinadi.
  */
 class AnimalImportController extends Controller
@@ -33,12 +33,12 @@ class AnimalImportController extends Controller
     public function create(Request $request)
     {
         $context = $this->context($request);
-        $target = $context['target'];
+        $farm = $context['farm'];
 
         return view('animals.import', $context + [
             'xlsxSupported' => SpreadsheetReader::xlsxSupported(),
-            'maxAnimals' => $target->activePlan()->max_hayvon,
-            'currentAnimals' => $target->animals()->count(),
+            'maxAnimals' => $farm->activePlan()->max_hayvon,
+            'currentAnimals' => $farm->animals()->count(),
             'uploadUrl' => $this->url($context, 'upload'),
         ]);
     }
@@ -82,6 +82,7 @@ class AnimalImportController extends Controller
         Cache::put($this->cacheKey($token), [
             'actor_id' => $request->user()->id,
             'user_id' => $context['target']->id,
+            'farm_id' => $context['farm']->id,
             'file_name' => Str::limit(basename($file->getClientOriginalName()), 100),
             'rows' => $rows,
             'result' => null,
@@ -96,7 +97,7 @@ class AnimalImportController extends Controller
         [$token, $import] = $this->load($request, $context);
 
         // Tasdiqlanmaguncha har safar joriy baza holati bo'yicha qayta tekshiriladi
-        $result = $import['result'] ?? $this->import->validate($context['target'], $import['rows']);
+        $result = $import['result'] ?? $this->import->validate($context['farm'], $import['rows']);
         $onlyErrors = $request->query('show') === 'errors';
 
         $rows = array_map(fn ($row) => $row + ['messages' => $this->import->messages($row)], $result['rows']);
@@ -144,7 +145,7 @@ class AnimalImportController extends Controller
             }
 
             try {
-                $result = $this->import->import($context['target'], $import['rows']);
+                $result = $this->import->import($context['farm'], $context['target'], $import['rows']);
             } catch (QueryException $e) {
                 report($e);
 
@@ -166,7 +167,7 @@ class AnimalImportController extends Controller
                 'qoshildi' => $result['added'],
                 'xato' => $summary['error'],
                 'limit' => $summary['limit'],
-            ]);
+            ], null, null, $context['farm']->id);
         }
 
         $message = __(":added ta hayvon qo'shildi, :errors ta qator xato.", ['added' => $result['added'], 'errors' => $summary['error']]);
@@ -183,7 +184,7 @@ class AnimalImportController extends Controller
         $context = $this->context($request);
         [, $import] = $this->load($request, $context);
 
-        $result = $import['result'] ?? $this->import->validate($context['target'], $import['rows']);
+        $result = $import['result'] ?? $this->import->validate($context['farm'], $import['rows']);
 
         return $this->csvDownload($this->import->errorsCsv($result['rows']), 'hayvonlar-xatolar.csv');
     }
@@ -199,7 +200,8 @@ class AnimalImportController extends Controller
     }
 
     /**
-     * Kimga yuklanmoqda va qaysi marshrutlar ishlatiladi.
+     * Kimga (qaysi fermaga) yuklanmoqda va qaysi marshrutlar ishlatiladi.
+     * 'target' — hayvonlarning user_id si (yaratgan), 'farm' — egasi.
      */
     private function context(Request $request): array
     {
@@ -208,6 +210,7 @@ class AnimalImportController extends Controller
         if ($userId === null) {
             return [
                 'target' => $request->user(),
+                'farm' => $this->currentFarm(),
                 'adminMode' => false,
                 'routePrefix' => 'animals.import',
                 'routeParams' => [],
@@ -219,8 +222,16 @@ class AnimalImportController extends Controller
 
         $target = User::findOrFail($userId);
 
+        // Admin foydalanuvchining o'z fermasiga (u egasi bo'lgan fermaga) yuklaydi
+        $farm = $target->ownedFarms()->orderBy('id')->first();
+
+        if (!$farm) {
+            abort(redirect()->route('admin.users.index', ['q' => $target->email])->with('error', __("Bu foydalanuvchining o'z fermasi yo'q.")));
+        }
+
         return [
             'target' => $target,
+            'farm' => $farm,
             'adminMode' => true,
             'routePrefix' => 'admin.users.import',
             'routeParams' => ['user' => $target->id],
@@ -235,7 +246,8 @@ class AnimalImportController extends Controller
         $token = (string) $request->route('token');
         $import = Cache::get($this->cacheKey($token));
 
-        if (!$import || $import['actor_id'] !== $request->user()->id || $import['user_id'] !== $context['target']->id) {
+        if (!$import || $import['actor_id'] !== $request->user()->id || $import['user_id'] !== $context['target']->id
+            || ($import['farm_id'] ?? null) !== $context['farm']->id) {
             abort(redirect($this->url($context, 'create'))->with('error', __('Import topilmadi yoki muddati tugagan. Faylni qayta yuklang.')));
         }
 

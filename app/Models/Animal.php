@@ -24,6 +24,8 @@ class Animal extends Model
 
     protected $fillable = [
 
+        'farm_id',
+
         'user_id',
 
         'name',
@@ -65,6 +67,18 @@ class Animal extends Model
     ];
 
 
+
+    public function farm()
+
+    {
+
+        return $this->belongsTo(Farm::class);
+
+    }
+
+
+
+    // Hayvonni kim yaratgan (egasi — farm)
 
     public function user()
 

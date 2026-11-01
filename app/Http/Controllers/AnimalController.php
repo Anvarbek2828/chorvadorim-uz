@@ -26,7 +26,7 @@ class AnimalController extends Controller
 
     public function index(Request $request)
     {
-        $baseQuery = Animal::where('user_id', auth()->id());
+        $baseQuery = Animal::where('farm_id', $this->currentFarm()->id);
 
         // Filtrda faqat foydalanuvchida haqiqatda bor yo'nalishlar ko'rsatiladi
         $directions = array_values(array_intersect(
@@ -45,7 +45,7 @@ class AnimalController extends Controller
         $query = (clone $baseQuery)
             ->when($filters['q'] !== '', function ($query) use ($filters) {
                 $like = '%' . addcslashes($filters['q'], '%_\\') . '%';
-                // orWhere'lar alohida guruhda: user_id sharti har doim amal qiladi
+                // orWhere'lar alohida guruhda: farm_id sharti har doim amal qiladi
                 $query->where(function ($q) use ($like) {
                     $q->where('name', 'like', $like)
                         ->orWhere('passport_number', 'like', $like)
@@ -117,9 +117,13 @@ class AnimalController extends Controller
 
 
 
-        if ($limitMessage = app(AiUsageService::class)->animalLimitMessage(auth()->user())) {
+        $farm = $this->currentFarm();
+
+        if ($limitMessage = app(AiUsageService::class)->animalLimitMessage($farm)) {
             return back()->withInput()->withErrors(['plan_limit' => $limitMessage]);
         }
+
+        $validated['farm_id'] = $farm->id;
 
         $validated['user_id'] = auth()->id();
 
@@ -245,7 +249,7 @@ class AnimalController extends Controller
 
     {
 
-        $animals = Animal::onlyTrashed()->where('user_id', auth()->id())
+        $animals = Animal::onlyTrashed()->where('farm_id', $this->currentFarm()->id)
             ->orderByDesc('deleted_at')
             ->orderByDesc('id')
             ->paginate(24);
@@ -260,11 +264,10 @@ class AnimalController extends Controller
 
     {
 
-        $animal = Animal::onlyTrashed()->findOrFail($id);
+        // Boshqa fermaning hayvoni — 404
+        $animal = Animal::onlyTrashed()->where('farm_id', $this->currentFarm()->id)->findOrFail($id);
 
-        $this->checkOwnership($animal);
-
-        if ($limitMessage = app(AiUsageService::class)->animalLimitMessage(auth()->user())) {
+        if ($limitMessage = app(AiUsageService::class)->animalLimitMessage($this->currentFarm())) {
             return redirect()->route('animals.archive')->with('error', $limitMessage)->with('show_plans_link', true);
         }
 
@@ -286,9 +289,7 @@ class AnimalController extends Controller
 
     {
 
-        $animal = Animal::onlyTrashed()->findOrFail($id);
-
-        $this->checkOwnership($animal);
+        $animal = Animal::onlyTrashed()->where('farm_id', $this->currentFarm()->id)->findOrFail($id);
 
 
 
@@ -354,17 +355,7 @@ class AnimalController extends Controller
 
     {
 
-        $animalUserId = (int) $animal->user_id;
-
-        $currentUserId = (int) auth()->id();
-
-
-
-        if ($animalUserId !== $currentUserId) {
-
-            abort(403, 'Sizga bu ma\'lumotni ko\'rish huquqi berilmagan.');
-
-        }
+        $this->ensureAnimalInFarm($animal);
 
     }
 

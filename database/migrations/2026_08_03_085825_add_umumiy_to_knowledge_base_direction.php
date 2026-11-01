@@ -18,6 +18,11 @@ return new class extends Migration
 
     {
 
+        // MODIFY faqat MySQL'da bor; testlardagi sqlite uchun o'tkazib yuboriladi
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE knowledge_base MODIFY direction VARCHAR(50) NOT NULL");
 
     }
