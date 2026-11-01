@@ -29,6 +29,9 @@
                             @endforeach
 
                         </ul>
+                        @if ($errors->has('plan_limit'))
+                            @include('plans.partials.upgrade-link')
+                        @endif
 
                     </div>
 

@@ -38,6 +38,16 @@
 
                     </x-nav-link>
 
+                    <x-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
+                        {{ __('Tariflar') }}
+                    </x-nav-link>
+
+                    @if (Auth::user()->is_admin)
+                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
+                            {{ __('Admin panel') }}
+                        </x-nav-link>
+                    @endif
+
                 </div>
 
             </div>
@@ -184,6 +194,16 @@
                 {{ __('Mening hayvonlarim') }}
 
             </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
+                {{ __('Tariflar') }}
+            </x-responsive-nav-link>
+
+            @if (Auth::user()->is_admin)
+                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
+                    {{ __('Admin panel') }}
+                </x-responsive-nav-link>
+            @endif
 
         </div>
 
