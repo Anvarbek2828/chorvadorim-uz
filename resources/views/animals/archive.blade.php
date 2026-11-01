@@ -120,6 +120,8 @@
 
                     </div>
 
+                    {{ $animals->onEachSide(1)->links('animals.partials.pagination') }}
+
                 @endif
 
             </div>

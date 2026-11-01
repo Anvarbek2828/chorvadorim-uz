@@ -224,5 +224,19 @@
     "Model": "Модел",
     "O'rtacha kirish tokeni": "Ўртача кириш токени",
     "O'rtacha chiqish tokeni": "Ўртача чиқиш токени",
-    "O'rtacha narx": "Ўртача нарх"
+    "O'rtacha narx": "Ўртача нарх",
+    "Nomi, pasport yoki chip raqami": "Номи, паспорт ёки чип рақами",
+    "Hammasi": "Ҳаммаси",
+    "Pasport": "Паспорт",
+    "Pasport yo'q": "Паспорт йўқ",
+    "Tartiblash": "Тартиблаш",
+    "Avval yangilari": "Аввал янгилари",
+    "Avval eskilari": "Аввал эскилари",
+    "Nomi bo'yicha (A-Z)": "Номи бўйича (А-Я)",
+    "Jami: :count ta hayvon": "Жами: :count та ҳайвон",
+    "Hech qanday hayvon topilmadi. Qidiruv yoki filtrlarni o'zgartirib ko'ring.": "Ҳеч қандай ҳайвон топилмади. Қидирув ёки филтрларни ўзгартириб кўринг.",
+    "Sahifalar": "Саҳифалар",
+    "Oldingi": "Олдинги",
+    "Keyingi": "Кейинги",
+    "Sahifa :current / :last": "Саҳифа :current / :last"
 }

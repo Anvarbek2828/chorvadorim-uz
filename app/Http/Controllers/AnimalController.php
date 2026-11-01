@@ -24,14 +24,49 @@ class AnimalController extends Controller
 
 {
 
-    public function index()
-
+    public function index(Request $request)
     {
+        $baseQuery = Animal::where('user_id', auth()->id());
 
-        $animals = Animal::where('user_id', auth()->id())->get();
+        // Filtrda faqat foydalanuvchida haqiqatda bor yo'nalishlar ko'rsatiladi
+        $directions = array_values(array_intersect(
+            ['sut', 'gosht', 'nasl'],
+            (clone $baseQuery)->distinct()->pluck('direction')->all()
+        ));
 
-        return view('animals.index', compact('animals'));
+        $filters = [
+            'q' => trim((string) $request->query('q', '')),
+            'direction' => in_array($request->query('direction'), $directions, true) ? $request->query('direction') : '',
+            'gender' => in_array($request->query('gender'), ['urgochi', 'erkak'], true) ? $request->query('gender') : '',
+            'passport' => in_array($request->query('passport'), ['bor', 'yoq'], true) ? $request->query('passport') : '',
+            'sort' => in_array($request->query('sort'), ['yangi', 'eski', 'nomi'], true) ? $request->query('sort') : 'yangi',
+        ];
 
+        $query = (clone $baseQuery)
+            ->when($filters['q'] !== '', function ($query) use ($filters) {
+                $like = '%' . addcslashes($filters['q'], '%_\\') . '%';
+                // orWhere'lar alohida guruhda: user_id sharti har doim amal qiladi
+                $query->where(function ($q) use ($like) {
+                    $q->where('name', 'like', $like)
+                        ->orWhere('passport_number', 'like', $like)
+                        ->orWhere('chip_number', 'like', $like);
+                });
+            })
+            ->when($filters['direction'] !== '', fn ($query) => $query->where('direction', $filters['direction']))
+            ->when($filters['gender'] !== '', fn ($query) => $query->where('gender', $filters['gender']))
+            ->when($filters['passport'] !== '', fn ($query) => $query->where('has_passport', $filters['passport'] === 'bor'));
+
+        match ($filters['sort']) {
+            'nomi' => $query->orderBy('name')->orderBy('id'),
+            'eski' => $query->orderBy('created_at')->orderBy('id'),
+            default => $query->orderByDesc('created_at')->orderByDesc('id'),
+        };
+
+        $animals = $query->paginate(24)->withQueryString();
+
+        $hasFilters = $filters['q'] !== '' || $filters['direction'] !== '' || $filters['gender'] !== '' || $filters['passport'] !== '';
+
+        return view('animals.index', compact('animals', 'directions', 'filters', 'hasFilters'));
     }
 
 
@@ -210,7 +245,10 @@ class AnimalController extends Controller
 
     {
 
-        $animals = Animal::onlyTrashed()->where('user_id', auth()->id())->get();
+        $animals = Animal::onlyTrashed()->where('user_id', auth()->id())
+            ->orderByDesc('deleted_at')
+            ->orderByDesc('id')
+            ->paginate(24);
 
         return view('animals.archive', compact('animals'));
 

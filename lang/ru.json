@@ -224,5 +224,19 @@
     "Model": "Модель",
     "O'rtacha kirish tokeni": "Средн. входных токенов",
     "O'rtacha chiqish tokeni": "Средн. выходных токенов",
-    "O'rtacha narx": "Средняя цена"
+    "O'rtacha narx": "Средняя цена",
+    "Nomi, pasport yoki chip raqami": "Кличка, номер паспорта или чипа",
+    "Hammasi": "Все",
+    "Pasport": "Паспорт",
+    "Pasport yo'q": "Нет паспорта",
+    "Tartiblash": "Сортировка",
+    "Avval yangilari": "Сначала новые",
+    "Avval eskilari": "Сначала старые",
+    "Nomi bo'yicha (A-Z)": "По кличке (А-Я)",
+    "Jami: :count ta hayvon": "Всего животных: :count",
+    "Hech qanday hayvon topilmadi. Qidiruv yoki filtrlarni o'zgartirib ko'ring.": "Животные не найдены. Попробуйте изменить поиск или фильтры.",
+    "Sahifalar": "Страницы",
+    "Oldingi": "Назад",
+    "Keyingi": "Далее",
+    "Sahifa :current / :last": "Страница :current / :last"
 }
