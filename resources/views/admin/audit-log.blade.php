@@ -7,6 +7,7 @@
         AdminAuditLog::ACTION_USER_UNBLOCKED => __('Blokdan chiqarildi'),
         AdminAuditLog::ACTION_USER_MADE_ADMIN => __('Admin qilindi'),
         AdminAuditLog::ACTION_PLAN_UPDATED => __('Tarif tahrirlandi'),
+        AdminAuditLog::ACTION_USER_ANIMALS_IMPORTED => __('Hayvonlar fayldan yuklandi'),
     ];
 
     $fieldLabels = [
@@ -22,6 +23,11 @@
         'chat_model' => __('Chat modeli'),
         'vision_model' => __('Rasm modeli'),
         'faol' => __('Faol'),
+        'fayl' => __('Fayl'),
+        'qatorlar' => __('Jami qatorlar'),
+        'qoshildi' => __("Qo'shildi"),
+        'xato' => __('Xato'),
+        'limit' => __('Tarif limitidan oshgan'),
     ];
 
     $formatValue = function ($value) {

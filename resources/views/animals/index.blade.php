@@ -11,11 +11,17 @@
 
             </h2>
 
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
 
                 <a href="{{ route('animals.archive') }}" class="text-gray-600 hover:text-gray-900 text-sm self-center">
 
                     {{ __('Arxiv') }}
+
+                </a>
+
+                <a href="{{ route('animals.import') }}" class="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 text-sm">
+
+                    {{ __("Excel'dan yuklash") }}
 
                 </a>
 

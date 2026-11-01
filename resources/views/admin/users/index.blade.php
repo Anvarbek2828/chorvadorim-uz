@@ -100,6 +100,8 @@
                                                 </form>
                                             </details>
 
+                                            <a href="{{ route('admin.users.import', $user) }}" class="block mt-2 text-sm underline">{{ __('Hayvonlarni yuklash') }}</a>
+
                                             @if ($user->id !== auth()->id() && (!$user->is_admin || $user->is_blocked))
                                                 <form method="POST" action="{{ route('admin.users.block', $user) }}" class="mt-2"
                                                       onsubmit="return confirm(@js($user->is_blocked ? __('Foydalanuvchini blokdan chiqarasizmi?') : __('Foydalanuvchini bloklaysizmi? U tizimga kira olmaydi.')))">
