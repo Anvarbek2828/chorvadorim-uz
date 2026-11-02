@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Xodimlar B: xavfsiz o'chirish.
  * - animals.user_id ("kim yaratdi") NULL bo'la oladi: xodim akkaunti o'chsa, hayvonlar fermada qoladi.
- * - animals.farm_id va ai_usage_logs.farm_id fermaga bog'lanadi: ferma o'chsa, ma'lumot ham o'chadi.
+ * - animals.farm_id fermaga bog'lanadi: ferma o'chsa, hayvonlar ham o'chadi.
+ * - ai_usage_logs.farm_id fermaga bog'lanadi: ferma o'chsa, yozuv qoladi (farm_id NULL) — platformaning AI xarajat tarixi uchun.
  * Prod bazada xuddi shu o'zgarishlar database/sql/2026_11_xodimlar_B.sql orqali bajariladi.
  */
 return new class extends Migration
@@ -39,7 +40,7 @@ return new class extends Migration
         });
 
         Schema::table('ai_usage_logs', function (Blueprint $table) {
-            $table->foreign('farm_id')->references('id')->on('farms')->cascadeOnDelete();
+            $table->foreign('farm_id')->references('id')->on('farms')->nullOnDelete();
         });
     }
 

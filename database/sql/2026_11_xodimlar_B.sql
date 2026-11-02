@@ -38,13 +38,14 @@ ALTER TABLE `animals`
     MODIFY `user_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     ADD CONSTRAINT `animals_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
--- 1.3. Ferma ochsa, uning hayvonlari va AI yozuvlari ham ochadi (hozirgi xatti-harakat bilan bir xil).
+-- 1.3. Ferma ochsa, uning hayvonlari ham ochadi (hozirgi xatti-harakat bilan bir xil).
+--      AI yozuvlari esa qoladi, farm_id NULL boladi: platformaning AI xarajat tarixi saqlanadi.
 --      Faza A da yaratilgan animals_farm_id_index va ai_usage_logs_farm_id_index ishlatiladi.
 ALTER TABLE `animals`
     ADD CONSTRAINT `animals_farm_id_foreign` FOREIGN KEY (`farm_id`) REFERENCES `farms` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `ai_usage_logs`
-    ADD CONSTRAINT `ai_usage_logs_farm_id_foreign` FOREIGN KEY (`farm_id`) REFERENCES `farms` (`id`) ON DELETE CASCADE;
+    ADD CONSTRAINT `ai_usage_logs_farm_id_foreign` FOREIGN KEY (`farm_id`) REFERENCES `farms` (`id`) ON DELETE SET NULL;
 
 -- 1.4. Ferma amallari jurnali. Ferma ochsa yozuvlar ham ochadi; amalni bajargan foydalanuvchi ochsa user_id NULL.
 CREATE TABLE `farm_audit_logs` (
@@ -122,7 +123,7 @@ WHERE NOT EXISTS (
 --   animals_user_id_nullable = YES
 --   animals_user_fk          = SET NULL
 --   animals_farm_fk          = CASCADE
---   ai_logs_farm_fk          = CASCADE
+--   ai_logs_farm_fk          = SET NULL
 --   audit_jadval             = 1
 --   audit_farm_fk            = CASCADE
 --   audit_user_fk            = SET NULL

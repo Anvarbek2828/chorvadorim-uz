@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiUsageLog;
 use App\Models\Animal;
 use App\Models\Farm;
 use App\Models\FarmAuditLog;
@@ -499,6 +500,27 @@ class StaffTest extends TestCase
         $this->actingAs($owner)->delete('/profile', ['password' => 'password'])->assertRedirect('/');
         $this->assertNull(Farm::find($farm->id));
         $this->assertNull(Animal::withTrashed()->find($animal->id));
+    }
+
+    public function test_farm_deletion_keeps_ai_usage_logs_with_null_farm(): void
+    {
+        $owner = User::factory()->create();
+        $farm = $this->farmOf($owner);
+        $log = AiUsageLog::create([
+            'farm_id' => $farm->id,
+            'user_id' => $owner->id,
+            'turi' => AiUsageLog::TYPE_CHAT,
+            'model' => 'gpt-4o-mini',
+            'narx_usd' => 0.0125,
+        ]);
+
+        $farm->delete();
+
+        // Platformaning AI xarajat tarixi saqlanadi
+        $log = AiUsageLog::find($log->id);
+        $this->assertNotNull($log);
+        $this->assertNull($log->farm_id);
+        $this->assertSame('0.012500', (string) $log->narx_usd);
     }
 
     public function test_farm_audit_log_records_actions_and_filters(): void
