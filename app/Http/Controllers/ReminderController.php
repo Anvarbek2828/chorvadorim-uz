@@ -10,6 +10,10 @@ use App\Models\Animal;
 
 use App\Models\Reminder;
 
+use App\Models\FarmAuditLog;
+
+use App\Services\FarmAuditService;
+
 use Illuminate\Http\Request;
 
 
@@ -36,7 +40,9 @@ class ReminderController extends Controller
 
 
 
-        $animal->reminders()->create($validated);
+        $reminder = $animal->reminders()->create($validated);
+
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_REMINDER_CREATED, 'reminder', $reminder->id, [], $this->auditState($animal, $reminder));
 
 
 
@@ -64,9 +70,29 @@ class ReminderController extends Controller
 
         $reminder->delete();
 
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_REMINDER_DELETED, 'reminder', $reminder->id, $this->auditState($animal, $reminder));
+
 
 
         return back()->with('success', "Eslatma o'chirildi.");
+
+    }
+
+
+
+    private function auditState(Animal $animal, Reminder $reminder): array
+
+    {
+
+        return [
+
+            'hayvon' => $animal->name,
+
+            'eslatma' => $reminder->title,
+
+            'sana' => $reminder->due_date,
+
+        ];
 
     }
 

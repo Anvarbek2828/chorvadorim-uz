@@ -39,6 +39,8 @@
 
 
 
+            @can('ai.use')
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
                 <form method="POST" action="{{ route('photo-analysis.store', $animal) }}" enctype="multipart/form-data">
@@ -62,6 +64,8 @@
                 </form>
 
             </div>
+
+            @endcan
 
 
 
@@ -89,6 +93,8 @@
 
                         <div class="text-sm text-gray-500">{{ $analysis->created_at->format('d.m.Y H:i') }}</div>
 
+                        @can('animals.delete')
+
                         <form method="POST" action="{{ route('photo-analysis.destroy', [$animal, $analysis]) }}" onsubmit="return confirm('Bu tahlilni o\'chirmoqchimisiz?');">
 
                             @csrf
@@ -98,6 +104,8 @@
                             <button type="submit" class="text-red-500 hover:text-red-700 text-xs">O'chirish</button>
 
                         </form>
+
+                        @endcan
 
                     </div>
 
@@ -163,6 +171,8 @@
 
 
 
+                    @can('ai.use')
+
                     <div class="mt-4 pt-4 border-t">
 
                         <div class="flex items-center gap-2 mb-3">
@@ -192,6 +202,8 @@
                         </form>
 
                     </div>
+
+                    @endcan
 
                 </div>
 

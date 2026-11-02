@@ -28,8 +28,9 @@
                             <thead>
                                 <tr>
                                     <th>{{ __('Foydalanuvchi') }}</th>
+                                    <th>{{ __('Ferma') }}</th>
                                     <th>{{ __('Tarif') }}</th>
-                                    <th class="adm-num">{{ __('Hayvonlar') }}</th>
+                                    <th class="adm-num">{{ __('Hayvonlar (ferma)') }}</th>
                                     <th class="adm-num">{{ __('AI chat') }}</th>
                                     <th class="adm-num">{{ __('Rasm tahlili') }}</th>
                                     <th class="adm-num">{{ __('Xarajat') }}</th>
@@ -41,6 +42,9 @@
                                 @foreach ($users as $user)
                                     @php
                                         $expired = $user->isPlanExpired();
+                                        // Asosiy a'zolik: o'z fermasi (ega), bo'lmasa birinchi a'zoligi (xodim)
+                                        $membership = $user->farmMemberships->firstWhere('role', \App\Models\FarmUser::ROLE_OWNER) ?? $user->farmMemberships->first();
+                                        $otherFarms = $user->farmMemberships->count() - ($membership ? 1 : 0);
                                     @endphp
                                     <tr>
                                         <td>
@@ -57,6 +61,24 @@
                                             <div class="text-xs text-gray-500">{{ __("Ro'yxatdan o'tgan") }}: {{ $user->created_at?->format('d.m.Y') }}</div>
                                         </td>
                                         <td>
+                                            @if ($membership?->farm)
+                                                {{ $membership->farm->name }}
+                                                <div class="text-xs text-gray-500">
+                                                    @if ($membership->role === \App\Models\FarmUser::ROLE_OWNER)
+                                                        {{ __('Ega') }}
+                                                    @else
+                                                        {{ __('Xodim') }} ({{ ['manager' => __('Menejer'), 'worker' => __('Ishchi'), 'viewer' => __("Kuzatuvchi (faqat ko'radi)")][$membership->role] ?? $membership->role }}){{ $membership->status !== \App\Models\FarmUser::STATUS_ACTIVE ? ', ' . __("to'xtatilgan") : '' }}
+                                                    @endif
+                                                    · {{ __("A'zolar") }}: {{ $membership->farm->members_count }}
+                                                </div>
+                                                @if ($otherFarms > 0)
+                                                    <div class="text-xs text-gray-500">{{ __("Yana :count ta fermada a'zo", ['count' => $otherFarms]) }}</div>
+                                                @endif
+                                            @else
+                                                <span class="text-gray-400">{{ __("Fermasi yo'q") }}</span>
+                                            @endif
+                                        </td>
+                                        <td>
                                             {{ $user->plan?->nomi ?? \App\Models\Plan::free()->nomi }}
                                             @if ($user->plan_tugash_sanasi)
                                                 <div class="text-xs {{ $expired ? 'text-red-600' : 'text-gray-500' }}">
@@ -64,7 +86,7 @@
                                                 </div>
                                             @endif
                                         </td>
-                                        <td class="adm-num">{{ $user->animals_count }}</td>
+                                        <td class="adm-num">{{ $membership?->farm?->animals_count ?? 0 }}</td>
                                         <td class="adm-num">{{ $user->month_chat }}</td>
                                         <td class="adm-num">{{ $user->month_vision }}</td>
                                         <td class="adm-num">

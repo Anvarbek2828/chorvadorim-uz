@@ -19,17 +19,25 @@
 
                 </a>
 
+                @can('import.csv')
+
                 <a href="{{ route('animals.import') }}" class="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 text-sm">
 
                     {{ __("Excel'dan yuklash") }}
 
                 </a>
 
+                @endcan
+
+                @can('animals.create')
+
                 <a href="{{ route('animals.create') }}" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700 text-sm">
 
                     {{ __("+ Yangi hayvon qo'shish") }}
 
                 </a>
+
+                @endcan
 
             </div>
 

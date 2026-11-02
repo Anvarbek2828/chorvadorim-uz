@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminAuditLog;
 use App\Models\AiUsageLog;
 use App\Models\Farm;
+use App\Models\FarmUser;
 use App\Models\Plan;
 use App\Models\User;
 use App\Services\AdminAuditService;
 use App\Services\AiUsageService;
+use App\Services\FarmStaffService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -21,8 +23,15 @@ class UserController extends Controller
         $monthStart = $usage->monthStart();
 
         $users = User::query()
-            ->with('plan')
-            ->withCount('animals')
+            ->with([
+                'plan',
+                // Ferma ma'lumoti: a'zolar soni (faol) va hayvonlar soni ferma bo'yicha
+                'farmMemberships' => fn ($q) => $q->orderBy('id'),
+                'farmMemberships.farm' => fn ($q) => $q->withCount([
+                    'memberships as members_count' => fn ($m) => $m->where('status', FarmUser::STATUS_ACTIVE),
+                    'animals',
+                ]),
+            ])
             ->withCount([
                 'aiUsageLogs as month_chat' => fn ($q) => $q->where('turi', AiUsageLog::TYPE_CHAT)->where('created_at', '>=', $monthStart),
                 'aiUsageLogs as month_vision' => fn ($q) => $q->where('turi', AiUsageLog::TYPE_VISION)->where('created_at', '>=', $monthStart),
@@ -54,7 +63,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function updatePlan(Request $request, User $user, AdminAuditService $audit)
+    public function updatePlan(Request $request, User $user, AdminAuditService $audit, FarmStaffService $staff)
     {
         $validated = $request->validate([
             'plan_id' => ['required', 'integer', 'exists:plans,id'],
@@ -85,7 +94,16 @@ class UserController extends Controller
 
         $audit->log(AdminAuditLog::ACTION_USER_PLAN_CHANGED, 'user', $user->id, $old, $this->planState($farm), null, null, $farm->id);
 
-        return back()->with('success', __(':name uchun tarif saqlandi.', ['name' => $user->name]));
+        // Tarif pasaygan bo'lsa, limitdan ortiq xodimlar to'xtatiladi (eng oxirgi qo'shilganlar)
+        $suspended = $staff->enforceLimit($farm);
+
+        $message = __(':name uchun tarif saqlandi.', ['name' => $user->name]);
+
+        if ($suspended > 0) {
+            $message .= ' ' . __("Tarif limitidan ortiq :count ta xodim to'xtatildi.", ['count' => $suspended]);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function toggleBlock(User $user, AdminAuditService $audit)

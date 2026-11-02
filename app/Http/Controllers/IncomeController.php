@@ -8,6 +8,10 @@ use App\Models\Animal;
 
 use App\Models\Income;
 
+use App\Models\FarmAuditLog;
+
+use App\Services\FarmAuditService;
+
 use Illuminate\Http\Request;
 
 
@@ -42,7 +46,9 @@ class IncomeController extends Controller
 
 
 
-        Income::create($validated);
+        $income = Income::create($validated);
+
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_INCOME_CREATED, 'income', $income->id, [], $this->auditState($animal, $income));
 
 
 
@@ -70,9 +76,31 @@ class IncomeController extends Controller
 
         $income->delete();
 
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_INCOME_DELETED, 'income', $income->id, $this->auditState($animal, $income));
+
 
 
         return redirect()->route('animals.show', $animal)->with('success', 'Daromad o\'chirildi.');
+
+    }
+
+
+
+    private function auditState(Animal $animal, Income $income): array
+
+    {
+
+        return [
+
+            'hayvon' => $animal->name,
+
+            'turi' => $income->type,
+
+            'summa' => $income->amount,
+
+            'sana' => $income->income_date,
+
+        ];
 
     }
 

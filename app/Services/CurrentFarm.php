@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Farm;
 use App\Models\FarmUser;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -15,6 +16,9 @@ class CurrentFarm
 {
     /** @var array<int, FarmUser|null> */
     private array $memberships = [];
+
+    /** @var array<int, Collection<int, FarmUser>> */
+    private array $activeMemberships = [];
 
     public function membership(User $user): ?FarmUser
     {
@@ -35,9 +39,23 @@ class CurrentFarm
         return $this->membership($user)?->role;
     }
 
+    /**
+     * Foydalanuvchining barcha faol a'zoliklari (ferma almashtirgich uchun).
+     *
+     * @return Collection<int, FarmUser>
+     */
+    public function activeMemberships(User $user): Collection
+    {
+        return $this->activeMemberships[$user->id] ??= FarmUser::with('farm')
+            ->where('user_id', $user->id)
+            ->where('status', FarmUser::STATUS_ACTIVE)
+            ->orderBy('id')
+            ->get();
+    }
+
     public function forget(User $user): void
     {
-        unset($this->memberships[$user->id]);
+        unset($this->memberships[$user->id], $this->activeMemberships[$user->id]);
     }
 
     private function resolve(User $user): ?FarmUser

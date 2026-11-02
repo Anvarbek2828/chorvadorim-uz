@@ -84,6 +84,8 @@
 
                                 </div>
 
+                                @can('animals.delete')
+
                                 <div class="flex gap-2">
 
                                     <form method="POST" action="{{ route('animals.restore', $animal->id) }}">
@@ -113,6 +115,8 @@
                                     </form>
 
                                 </div>
+
+                                @endcan
 
                             </div>
 

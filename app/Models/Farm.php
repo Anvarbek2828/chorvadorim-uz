@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -94,5 +95,60 @@ class Farm extends Model
     {
         return $this->plan_tugash_sanasi !== null
             && $this->plan_tugash_sanasi->toDateString() < now(config('ai.timezone'))->toDateString();
+    }
+
+    /**
+     * Tarifdagi xodimlar chegarasi (egasi kirmaydi). null — cheksiz.
+     */
+    public function staffLimit(): ?int
+    {
+        return $this->activePlan()->max_staff;
+    }
+
+    /**
+     * Limitga kiradigan xodimlar: egasidan boshqa faol a'zolar.
+     */
+    public function activeStaffCount(): int
+    {
+        return $this->memberships()
+            ->where('role', '!=', FarmUser::ROLE_OWNER)
+            ->where('status', FarmUser::STATUS_ACTIVE)
+            ->count();
+    }
+
+    public function hasStaffCapacity(): bool
+    {
+        $limit = $this->staffLimit();
+
+        return $limit === null || $this->activeStaffCount() < $limit;
+    }
+
+    /**
+     * Limitdan ortiq faol xodimlarni to'xtatadi: eng oxirgi qo'shilganlar birinchi. $limit null — cheksiz.
+     *
+     * @return Collection<int, FarmUser> to'xtatilgan a'zoliklar
+     */
+    public function suspendExcessStaff(?int $limit): Collection
+    {
+        if ($limit === null) {
+            return collect();
+        }
+
+        $active = $this->memberships()
+            ->with('user')
+            ->where('role', '!=', FarmUser::ROLE_OWNER)
+            ->where('status', FarmUser::STATUS_ACTIVE)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $excess = $active->take(max(0, $active->count() - $limit));
+
+        foreach ($excess as $membership) {
+            $membership->status = FarmUser::STATUS_SUSPENDED;
+            $membership->save();
+        }
+
+        return $excess;
     }
 }

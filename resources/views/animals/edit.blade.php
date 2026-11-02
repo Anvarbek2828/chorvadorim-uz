@@ -190,6 +190,8 @@
 
 
 
+                @can('animals.delete')
+
                 <form method="POST" action="{{ route('animals.destroy', $animal) }}" class="mt-6 border-t pt-4" onsubmit='return confirm("{{ __("Rostdan ham o'chirmoqchimisiz?") }}");'>
 
                     @csrf
@@ -203,6 +205,8 @@
                     </button>
 
                 </form>
+
+                @endcan
 
             </div>
 

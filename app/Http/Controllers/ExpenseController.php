@@ -8,6 +8,10 @@ use App\Models\Animal;
 
 use App\Models\Expense;
 
+use App\Models\FarmAuditLog;
+
+use App\Services\FarmAuditService;
+
 use Illuminate\Http\Request;
 
 
@@ -42,7 +46,9 @@ class ExpenseController extends Controller
 
 
 
-        Expense::create($validated);
+        $expense = Expense::create($validated);
+
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_EXPENSE_CREATED, 'expense', $expense->id, [], $this->auditState($animal, $expense));
 
 
 
@@ -70,9 +76,31 @@ class ExpenseController extends Controller
 
         $expense->delete();
 
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_EXPENSE_DELETED, 'expense', $expense->id, $this->auditState($animal, $expense));
+
 
 
         return redirect()->route('animals.show', $animal)->with('success', 'Xarajat o\'chirildi.');
+
+    }
+
+
+
+    private function auditState(Animal $animal, Expense $expense): array
+
+    {
+
+        return [
+
+            'hayvon' => $animal->name,
+
+            'turi' => $expense->type,
+
+            'summa' => $expense->amount,
+
+            'sana' => $expense->expense_date,
+
+        ];
 
     }
 

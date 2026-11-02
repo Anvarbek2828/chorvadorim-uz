@@ -1,3 +1,9 @@
+@php
+    // Joriy ferma va almashtirgich uchun faol a'zoliklar (CurrentFarm so'rov davomida eslab qoladi)
+    $navFarm = Auth::user()->activeFarm();
+    $navMemberships = app(\App\Services\CurrentFarm::class)->activeMemberships(Auth::user());
+@endphp
+
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100 sticky top-0 z-50">
 
     <!-- Primary Navigation Menu -->
@@ -38,9 +44,23 @@
 
                     </x-nav-link>
 
-                    <x-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
-                        {{ __('Tariflar') }}
-                    </x-nav-link>
+                    @can('plan.view')
+                        <x-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
+                            {{ __('Tariflar') }}
+                        </x-nav-link>
+                    @endcan
+
+                    @can('staff.manage')
+                        <x-nav-link :href="route('staff.index')" :active="request()->routeIs('staff.*')">
+                            {{ __('Xodimlar') }}
+                        </x-nav-link>
+                    @endcan
+
+                    @can('audit.view')
+                        <x-nav-link :href="route('farm-audit.index')" :active="request()->routeIs('farm-audit.*')">
+                            {{ __('Ferma jurnali') }}
+                        </x-nav-link>
+                    @endcan
 
                     @if (Auth::user()->is_admin)
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
@@ -88,6 +108,49 @@
                 </div>
 
 
+
+                <!-- Joriy ferma: almashtirgich (1 tadan ko'p faol a'zolik bo'lsa) va sozlamalar -->
+                @if ($navFarm)
+                    @if ($navMemberships->count() > 1 || Gate::allows('farm.settings'))
+                        <x-dropdown align="right" width="48">
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-3 py-2 border rounded-md text-sm leading-4 font-medium text-gray-700 bg-white hover:text-gray-900 focus:outline-none transition ease-in-out duration-150" title="{{ __('Joriy ferma') }}">
+                                    <div>&#127968; {{ $navFarm->name }}</div>
+                                    <div class="ms-1">
+                                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                @if ($navMemberships->count() > 1)
+                                    <div class="px-4 py-2 text-xs text-gray-500">{{ __('Fermani almashtirish') }}</div>
+                                    @foreach ($navMemberships as $navMembership)
+                                        <form method="POST" action="{{ route('farm.switch') }}">
+                                            @csrf
+                                            <input type="hidden" name="farm_id" value="{{ $navMembership->farm_id }}">
+                                            <x-dropdown-link :href="route('dashboard')" class="{{ (int) $navMembership->farm_id === (int) $navFarm->id ? 'font-semibold' : '' }}"
+                                                    onclick="event.preventDefault(); this.closest('form').submit();">
+                                                {{ $navMembership->farm?->name }}
+                                            </x-dropdown-link>
+                                        </form>
+                                    @endforeach
+                                @endif
+
+                                @can('farm.settings')
+                                    <div class="border-t border-gray-100"></div>
+                                    <x-dropdown-link :href="route('farm-settings.edit')">
+                                        {{ __('Ferma sozlamalari') }}
+                                    </x-dropdown-link>
+                                @endcan
+                            </x-slot>
+                        </x-dropdown>
+                    @else
+                        <div class="text-sm font-medium text-gray-700" title="{{ __('Joriy ferma') }}">&#127968; {{ $navFarm->name }}</div>
+                    @endif
+                @endif
 
                 <!-- Settings Dropdown -->
 
@@ -195,9 +258,23 @@
 
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
-                {{ __('Tariflar') }}
-            </x-responsive-nav-link>
+            @can('plan.view')
+                <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
+                    {{ __('Tariflar') }}
+                </x-responsive-nav-link>
+            @endcan
+
+            @can('staff.manage')
+                <x-responsive-nav-link :href="route('staff.index')" :active="request()->routeIs('staff.*')">
+                    {{ __('Xodimlar') }}
+                </x-responsive-nav-link>
+            @endcan
+
+            @can('audit.view')
+                <x-responsive-nav-link :href="route('farm-audit.index')" :active="request()->routeIs('farm-audit.*')">
+                    {{ __('Ferma jurnali') }}
+                </x-responsive-nav-link>
+            @endcan
 
             @if (Auth::user()->is_admin)
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
@@ -247,6 +324,10 @@
 
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
 
+                @if ($navFarm)
+                    <div class="font-medium text-sm text-gray-700 mt-1">&#127968; {{ $navFarm->name }}</div>
+                @endif
+
             </div>
 
 
@@ -258,6 +339,25 @@
                     {{ __('Profile') }}
 
                 </x-responsive-nav-link>
+
+                @if ($navMemberships->count() > 1)
+                    @foreach ($navMemberships as $navMembership)
+                        @continue((int) $navMembership->farm_id === (int) $navFarm?->id)
+                        <form method="POST" action="{{ route('farm.switch') }}">
+                            @csrf
+                            <input type="hidden" name="farm_id" value="{{ $navMembership->farm_id }}">
+                            <x-responsive-nav-link :href="route('dashboard')" onclick="event.preventDefault(); this.closest('form').submit();">
+                                {{ __("Fermaga o'tish") }}: {{ $navMembership->farm?->name }}
+                            </x-responsive-nav-link>
+                        </form>
+                    @endforeach
+                @endif
+
+                @can('farm.settings')
+                    <x-responsive-nav-link :href="route('farm-settings.edit')">
+                        {{ __('Ferma sozlamalari') }}
+                    </x-responsive-nav-link>
+                @endcan
 
 
 

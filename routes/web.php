@@ -99,6 +99,27 @@ Route::middleware(['auth', 'farm'])->group(function () {
 
     Route::get('/tariflar', [App\Http\Controllers\PlanController::class, 'index'])->can('plan.view')->name('plans.index');
 
+    // Xodimlar: {member} — farm_user.id (boshqa fermaniki 404)
+    Route::get('/xodimlar', [App\Http\Controllers\StaffController::class, 'index'])->can('staff.manage')->name('staff.index');
+    Route::post('/xodimlar', [App\Http\Controllers\StaffController::class, 'store'])->can('staff.manage')->middleware('throttle:20,1')->name('staff.store');
+    Route::patch('/xodimlar/{member}/rol', [App\Http\Controllers\StaffController::class, 'updateRole'])->can('staff.manage')->whereNumber('member')->name('staff.role');
+    Route::patch('/xodimlar/{member}/holat', [App\Http\Controllers\StaffController::class, 'updateStatus'])->can('staff.manage')->whereNumber('member')->name('staff.status');
+    Route::delete('/xodimlar/{member}', [App\Http\Controllers\StaffController::class, 'destroy'])->can('staff.manage')->whereNumber('member')->name('staff.destroy');
+
+    Route::get('/ferma-jurnali', [App\Http\Controllers\FarmAuditController::class, 'index'])->can('audit.view')->name('farm-audit.index');
+
+    Route::get('/ferma/sozlamalar', [App\Http\Controllers\FarmController::class, 'edit'])->can('farm.settings')->name('farm-settings.edit');
+    Route::patch('/ferma/sozlamalar', [App\Http\Controllers\FarmController::class, 'update'])->can('farm.settings')->name('farm-settings.update');
+
+});
+
+Route::middleware('auth')->group(function () {
+    // Joriy fermani almashtirish (faqat o'z faol a'zoligiga)
+    Route::post('/ferma/almashtirish', [App\Http\Controllers\FarmController::class, 'switch'])->name('farm.switch');
+
+    // Egasi bergan vaqtinchalik parolni almashtirish (EnsurePasswordChanged)
+    Route::get('/parol-almashtirish', [App\Http\Controllers\Auth\ForcePasswordController::class, 'edit'])->name('password.force');
+    Route::put('/parol-almashtirish', [App\Http\Controllers\Auth\ForcePasswordController::class, 'update'])->name('password.force.update');
 });
 
 // Super admin panel: 'admin' middleware admin bo'lmaganlarga (mehmonlarga ham) 404 qaytaradi

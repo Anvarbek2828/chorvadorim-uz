@@ -210,6 +210,9 @@ class TelegramController extends Controller
 
         $user = $linkCode->user;
 
+        // Bitta Telegram chat — bitta akkaunt: aks holda bot boshqa xodimning (boshqa rol bilan) akkauntini topishi mumkin
+        User::where('telegram_chat_id', $chatId)->where('id', '!=', $user->id)->update(['telegram_chat_id' => null]);
+
         $user->telegram_chat_id = $chatId;
 
         $user->save();

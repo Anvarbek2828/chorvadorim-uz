@@ -31,6 +31,8 @@
 
 
 
+            @can('ai.use')
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
                 <form method="POST" action="{{ route('chat.ask', $animal) }}">
@@ -50,6 +52,8 @@
                 </form>
 
             </div>
+
+            @endcan
 
 
 

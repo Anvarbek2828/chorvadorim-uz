@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdminAuditLog;
+use App\Models\FarmAuditLog;
 use App\Models\User;
 use App\Services\AdminAuditService;
 use App\Services\AnimalImportService;
+use App\Services\FarmAuditService;
 use App\Services\SpreadsheetReader;
 use App\Services\SpreadsheetReaderException;
 use Illuminate\Database\QueryException;
@@ -124,7 +126,7 @@ class AnimalImportController extends Controller
         ]);
     }
 
-    public function confirm(Request $request, AdminAuditService $audit)
+    public function confirm(Request $request, AdminAuditService $audit, FarmAuditService $farmAudit)
     {
         $context = $this->context($request);
         [$token, $import] = $this->load($request, $context);
@@ -160,14 +162,19 @@ class AnimalImportController extends Controller
 
         $summary = $result['summary'];
 
+        // Admin nomidan yuklash admin jurnaliga, ferma a'zosiniki — ferma jurnaliga yoziladi
+        $auditValues = [
+            'fayl' => $import['file_name'],
+            'qatorlar' => $summary['total'],
+            'qoshildi' => $result['added'],
+            'xato' => $summary['error'],
+            'limit' => $summary['limit'],
+        ];
+
         if ($context['adminMode']) {
-            $audit->log(AdminAuditLog::ACTION_USER_ANIMALS_IMPORTED, 'user', $context['target']->id, [], [
-                'fayl' => $import['file_name'],
-                'qatorlar' => $summary['total'],
-                'qoshildi' => $result['added'],
-                'xato' => $summary['error'],
-                'limit' => $summary['limit'],
-            ], null, null, $context['farm']->id);
+            $audit->log(AdminAuditLog::ACTION_USER_ANIMALS_IMPORTED, 'user', $context['target']->id, [], $auditValues, null, null, $context['farm']->id);
+        } else {
+            $farmAudit->log($context['farm'], FarmAuditLog::ACTION_ANIMALS_IMPORTED, 'import', null, [], $auditValues);
         }
 
         $message = __(":added ta hayvon qo'shildi, :errors ta qator xato.", ['added' => $result['added'], 'errors' => $summary['error']]);

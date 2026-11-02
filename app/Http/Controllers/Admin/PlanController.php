@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminAuditLog;
 use App\Models\Plan;
 use App\Services\AdminAuditService;
+use App\Services\FarmStaffService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class PlanController extends Controller
         ]);
     }
 
-    public function update(Request $request, Plan $plan, AdminAuditService $audit)
+    public function update(Request $request, Plan $plan, AdminAuditService $audit, FarmStaffService $staff)
     {
         // Faqat config('ai.pricing') da narxi bor modellar; tarifdagi joriy qiymat ro'yxatda bo'lmasa ham saqlab qolish mumkin
         $models = array_keys(config('ai.pricing', []));
@@ -47,6 +48,17 @@ class PlanController extends Controller
 
         $audit->log(AdminAuditLog::ACTION_PLAN_UPDATED, 'plan', $plan->id, $old, $plan->fresh()->only(self::FIELDS));
 
-        return back()->with('success', __(':name tarifi saqlandi.', ['name' => $plan->nomi]));
+        $message = __(':name tarifi saqlandi.', ['name' => $plan->nomi]);
+
+        // Xodimlar chegarasi kamaygan bo'lsa (cheksizdan songa ham), shu tarifdagi fermalarda ortiqcha xodimlar to'xtatiladi
+        if ($plan->max_staff !== null && ($old['max_staff'] === null || $plan->max_staff < $old['max_staff'])) {
+            $suspended = $staff->enforceLimitForPlan($plan);
+
+            if ($suspended > 0) {
+                $message .= ' ' . __("Tarif limitidan ortiq :count ta xodim to'xtatildi.", ['count' => $suspended]);
+            }
+        }
+
+        return back()->with('success', $message);
     }
 }

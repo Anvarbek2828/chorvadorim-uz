@@ -10,7 +10,11 @@ use App\Models\Animal;
 
 use App\Models\BankAnimalWatcher;
 
+use App\Models\FarmAuditLog;
+
 use App\Services\AiUsageService;
+
+use App\Services\FarmAuditService;
 
 use Illuminate\Http\Request;
 
@@ -133,7 +137,9 @@ class AnimalController extends Controller
 
 
 
-        Animal::create($validated);
+        $animal = Animal::create($validated);
+
+        app(FarmAuditService::class)->log($farm, FarmAuditLog::ACTION_ANIMAL_CREATED, 'animal', $animal->id, [], $this->auditState($animal, true));
 
 
 
@@ -213,7 +219,17 @@ class AnimalController extends Controller
 
 
 
+        $before = $this->auditState($animal);
+
         $animal->update($validated);
+
+        // Faqat o'zgargan maydonlar; bazadagi ko'rinishda solishtirish uchun qayta o'qiladi
+        $audit = app(FarmAuditService::class);
+        [$old, $new] = $audit->diff($before, $this->auditState($animal->fresh()));
+
+        if ($new !== []) {
+            $audit->log($animal->farm_id, FarmAuditLog::ACTION_ANIMAL_UPDATED, 'animal', $animal->id, $old, $new);
+        }
 
 
 
@@ -236,6 +252,8 @@ class AnimalController extends Controller
 
 
         $animal->delete();
+
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_ANIMAL_DELETED, 'animal', $animal->id, ['name' => $animal->name]);
 
 
 
@@ -273,6 +291,8 @@ class AnimalController extends Controller
 
         $animal->restore();
 
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_ANIMAL_RESTORED, 'animal', $animal->id, [], ['name' => $animal->name]);
+
 
 
         $this->notifyBankWatchers($animal, "qayta tiklandi (endi faol holatda)");
@@ -298,6 +318,8 @@ class AnimalController extends Controller
 
 
         $animal->forceDelete();
+
+        app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_ANIMAL_FORCE_DELETED, 'animal', $animal->id, $this->auditState($animal, true));
 
 
 
@@ -347,6 +369,21 @@ class AnimalController extends Controller
 
         }
 
+    }
+
+
+
+    /**
+     * Ferma jurnali uchun hayvon maydonlari. $withoutEmpty — bo'sh maydonlarsiz (qo'shish/o'chirish yozuvlari uchun).
+     */
+    private function auditState(Animal $animal, bool $withoutEmpty = false): array
+    {
+        $state = $animal->only([
+            'name', 'direction', 'breed', 'birth_date', 'initial_weight', 'current_weight', 'gender',
+            'notes', 'has_passport', 'passport_number', 'chip_number', 'passport_issue_date',
+        ]);
+
+        return $withoutEmpty ? array_filter($state, fn ($value) => $value !== null && $value !== '') : $state;
     }
 
 
