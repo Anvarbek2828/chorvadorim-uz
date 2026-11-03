@@ -10,9 +10,13 @@
     .stf-pre { white-space: pre-wrap; word-break: break-word; font-size: .8125rem; }
     .stf-badge { display: inline-block; padding: .125rem .5rem; border-radius: .25rem; font-size: .75rem; }
     .stf-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: .75rem; border-radius: .375rem; }
-    .stf-secret { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.25rem; letter-spacing: .05em; user-select: all; }
+    .stf-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: .75rem; border-radius: .375rem; }
+    .stf-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1rem; white-space: pre-wrap; word-break: break-all; background: #fff; border: 1px solid #bfdbfe; border-radius: .375rem; padding: .5rem .75rem; margin-top: .5rem; user-select: all; }
+    .stf-close { font-size: 1.25rem; line-height: 1; padding: 0 .25rem; color: inherit; background: none; border: 0; cursor: pointer; }
     html.dark .stf-table th { background: #273548; color: #cbd5e1; }
     html.dark .stf-table th, html.dark .stf-table td { border-color: #3e4c63; }
     html.dark .stf-warning { background: #3a2313; border-color: #78350f; color: #fde68a; }
     html.dark .stf-warning * { color: #fde68a; }
+    html.dark .stf-info { background: #172554; border-color: #1e3a8a; color: #bfdbfe; }
+    html.dark .stf-code { background: #0f172a; border-color: #1e3a8a; color: #e2e8f0; }
 </style>

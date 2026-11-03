@@ -26,6 +26,7 @@ class FarmAuditLog extends Model
     public const ACTION_STAFF_STATUS_CHANGED = 'staff.status_changed';
     public const ACTION_STAFF_AUTO_SUSPENDED = 'staff.auto_suspended';
     public const ACTION_STAFF_REMOVED = 'staff.removed';
+    public const ACTION_STAFF_PASSWORD_RESET = 'staff.password_reset';
     public const ACTION_FARM_RENAMED = 'farm.renamed';
 
     public const ACTIONS = [
@@ -46,6 +47,7 @@ class FarmAuditLog extends Model
         self::ACTION_STAFF_STATUS_CHANGED,
         self::ACTION_STAFF_AUTO_SUSPENDED,
         self::ACTION_STAFF_REMOVED,
+        self::ACTION_STAFF_PASSWORD_RESET,
         self::ACTION_FARM_RENAMED,
     ];
 

@@ -19,8 +19,26 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('success') || isset($success))
-                <div class="bg-green-100 text-green-700 p-3 rounded">{{ $success ?? session('success') }}</div>
+            @if (!empty($credentials))
+                <div class="stf-info" id="stf-credentials-block">
+                    <div class="flex justify-between items-start gap-2">
+                        <p class="text-sm font-semibold">{{ __('Bu parol faqat hozir ko\'rsatiladi. Uni xodimga bering.') }}</p>
+                        <button type="button" class="stf-close" aria-label="{{ __('Yopish') }}" title="{{ __('Yopish') }}"
+                                onclick="document.getElementById('stf-credentials-block').remove()">&times;</button>
+                    </div>
+<pre id="stf-credentials" class="stf-code">{{ __('Ism') }}: {{ $credentials['name'] ?? '' }}
+{{ __('Login') }}: {{ $credentials['email'] ?? '' }}
+{{ __('Parol') }}: <span id="stf-password">{{ $credentials['password'] ?? '' }}</span></pre>
+                    <button type="button" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700 text-sm mt-2"
+                            data-copied="{{ __('Nusxa olindi') }}"
+                            onclick="navigator.clipboard.writeText(document.getElementById('stf-credentials').textContent.trim()).then(() => { this.textContent = this.dataset.copied; })">
+                        {{ __('Nusxa olish') }}
+                    </button>
+                </div>
+            @endif
+
+            @if (session('success'))
+                <div class="bg-green-100 text-green-700 p-3 rounded">{{ session('success') }}</div>
             @endif
 
             @if ($errors->any())
@@ -31,23 +49,6 @@
                     @if ($errors->has('staff') && !$hasCapacity)
                         @include('plans.partials.upgrade-link')
                     @endif
-                </div>
-            @endif
-
-            @if (!empty($credentials))
-                <div class="stf-warning">
-                    <div class="font-semibold mb-2">{{ __('Yangi xodimning kirish ma\'lumotlari') }}</div>
-                    <div class="text-sm">{{ __('Email') }}: <span class="font-semibold">{{ $credentials['email'] }}</span></div>
-                    <div class="text-sm mt-2">{{ __('Vaqtinchalik parol') }}:</div>
-                    <div class="flex flex-wrap items-center gap-2 mt-1">
-                        <span id="stf-password" class="stf-secret">{{ $credentials['password'] }}</span>
-                        <button type="button" id="stf-copy-btn" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700 text-sm"
-                                data-copied="{{ __('Nusxa olindi') }}"
-                                onclick="navigator.clipboard.writeText(document.getElementById('stf-password').textContent.trim()).then(() => { this.textContent = this.dataset.copied; })">
-                            {{ __('Nusxa olish') }}
-                        </button>
-                    </div>
-                    <p class="text-sm mt-2">{{ __('Parol faqat hozir ko\'rsatiladi va bazada ochiq holda saqlanmaydi. Uni xodimga xavfsiz yo\'l bilan bering. Xodim birinchi kirishda parolni almashtiradi.') }}</p>
                 </div>
             @endif
 
@@ -146,6 +147,14 @@
                                                     @method('DELETE')
                                                     <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm">{{ __('Fermadan chiqarish') }}</button>
                                                 </form>
+
+                                                @if ($member->canResetTemporaryPassword($farm))
+                                                    <form method="POST" action="{{ route('staff.password', $member->id) }}"
+                                                          onsubmit="return confirm(@js(__('Xodimga yangi vaqtinchalik parol yaratilsinmi? Eski vaqtinchalik parol ishlamay qoladi.')))">
+                                                        @csrf
+                                                        <button type="submit" class="border border-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-50 text-sm">{{ __('Yangi vaqtinchalik parol') }}</button>
+                                                    </form>
+                                                @endif
                                             </div>
                                         @endif
                                     </td>
@@ -165,11 +174,11 @@
                         @csrf
                         <div>
                             <label class="block text-sm text-gray-700" for="staff-name">{{ __('Ism') }}</label>
-                            <input id="staff-name" type="text" name="name" value="{{ isset($credentials) ? '' : old('name') }}" maxlength="255" class="mt-1 block w-full rounded-md border-gray-300" required>
+                            <input id="staff-name" type="text" name="name" value="{{ old('name') }}" maxlength="255" class="mt-1 block w-full rounded-md border-gray-300" required>
                         </div>
                         <div>
                             <label class="block text-sm text-gray-700" for="staff-email">{{ __('Email') }}</label>
-                            <input id="staff-email" type="email" name="email" value="{{ isset($credentials) ? '' : old('email') }}" maxlength="255" class="mt-1 block w-full rounded-md border-gray-300" required>
+                            <input id="staff-email" type="email" name="email" value="{{ old('email') }}" maxlength="255" class="mt-1 block w-full rounded-md border-gray-300" required>
                         </div>
                         <div>
                             <label class="block text-sm text-gray-700" for="staff-role">{{ __('Rol') }}</label>

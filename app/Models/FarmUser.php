@@ -53,4 +53,27 @@ class FarmUser extends Pivot
     {
         return $this->status === self::STATUS_ACTIVE;
     }
+
+    /**
+     * Egasi yangi vaqtinchalik parol bera oladimi: xodim parolni hali almashtirmagan va
+     * uni shu fermaning egasi taklif qilgan yoki akkaunt shu fermada yaratilgan.
+     */
+    public function canResetTemporaryPassword(Farm $farm): bool
+    {
+        if ((int) $this->farm_id !== (int) $farm->id || $this->role === self::ROLE_OWNER || !$this->must_change_password) {
+            return false;
+        }
+
+        return (int) $this->invited_by === (int) $farm->owner_id || $this->accountCreatedHere();
+    }
+
+    // Akkaunt shu a'zolik bilan yaratilgan: o'z fermasi yo'q va birinchi a'zoligi shu
+    private function accountCreatedHere(): bool
+    {
+        $user = $this->user;
+
+        return $user !== null
+            && !$user->ownedFarms()->exists()
+            && (int) $user->farmMemberships()->min('id') === (int) $this->id;
+    }
 }

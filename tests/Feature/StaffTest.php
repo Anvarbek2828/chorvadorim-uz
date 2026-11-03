@@ -10,6 +10,7 @@ use App\Models\FarmUser;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -51,6 +52,13 @@ class StaffTest extends TestCase
         $member->forceFill(['current_farm_id' => $farm->id])->save();
 
         return $member;
+    }
+
+    private function passwordFrom(string $html): string
+    {
+        preg_match('/id="stf-password"[^>]*>([^<]+)</', $html, $matches);
+
+        return trim($matches[1] ?? '');
     }
 
     public function test_worker_cannot_delete_animal(): void
@@ -161,13 +169,21 @@ class StaffTest extends TestCase
         $farm = $this->farmOf($owner);
         $this->setPlan($farm, 'basic');
 
-        $response = $this->actingAs($owner)->post(route('staff.store'), [
+        $this->actingAs($owner)->post(route('staff.store'), [
             'name' => 'Yangi Ishchi',
             'email' => 'Ishchi@Example.com',
             'role' => FarmUser::ROLE_WORKER,
-        ]);
+        ])->assertRedirect(route('staff.index'));
 
-        $response->assertOk();
+        // Flashda parol faqat shifrlangan holda
+        $encrypted = session('staff_credentials');
+        $this->assertIsString($encrypted);
+
+        $response = $this->actingAs($owner)->get(route('staff.index'));
+        $response->assertOk()
+            ->assertSee(__('Bu parol faqat hozir ko\'rsatiladi. Uni xodimga bering.'))
+            ->assertSee('Yangi Ishchi')
+            ->assertSee('ishchi@example.com');
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
 
         $staff = User::where('email', 'ishchi@example.com')->firstOrFail();
@@ -180,16 +196,20 @@ class StaffTest extends TestCase
         // Xodim uchun alohida ferma yaratilmaydi
         $this->assertSame(0, Farm::where('owner_id', $staff->id)->count());
 
-        // Parol javobda bir marta ko'rsatiladi, bazada faqat hash
-        preg_match('/id="stf-password"[^>]*>([^<]+)</', $response->getContent(), $matches);
-        $password = trim($matches[1] ?? '');
+        // Parol bir marta ko'rsatiladi, bazada faqat hash
+        $password = $this->passwordFrom($response->getContent());
         $this->assertSame(10, strlen($password));
+        $this->assertStringNotContainsString($password, $encrypted);
+        $this->assertSame($password, json_decode(Crypt::decryptString($encrypted), true)['password']);
         $this->assertNotSame($password, $staff->password);
         $this->assertTrue(Hash::check($password, $staff->password));
         $this->assertDatabaseMissing('users', ['password' => $password]);
-        $this->assertNull(session('credentials'));
 
-        $this->actingAs($owner)->get(route('staff.index'))->assertOk()->assertDontSee($password);
+        // Sahifa yangilansa flash tugaydi
+        $this->actingAs($owner)->get(route('staff.index'))->assertOk()
+            ->assertDontSee($password)
+            ->assertDontSee('stf-password');
+        $this->assertNull(session('staff_credentials'));
 
         $this->assertDatabaseHas('farm_audit_logs', [
             'farm_id' => $farm->id,
@@ -211,7 +231,9 @@ class StaffTest extends TestCase
             'name' => 'Boshqa ism',
             'email' => 'mavjud@example.com',
             'role' => FarmUser::ROLE_MANAGER,
-        ])->assertOk()->assertDontSee('stf-password');
+        ])->assertRedirect(route('staff.index'));
+        $this->assertNull(session('staff_credentials'));
+        $this->actingAs($owner)->get(route('staff.index'))->assertOk()->assertDontSee('stf-password');
 
         $existing->refresh();
         $this->assertSame($oldHash, $existing->password);
@@ -256,7 +278,7 @@ class StaffTest extends TestCase
             'name' => 'Ikkinchi',
             'email' => 'ikkinchi@example.com',
             'role' => FarmUser::ROLE_WORKER,
-        ])->assertOk();
+        ])->assertRedirect(route('staff.index'));
         $this->assertSame(2, $farm->activeStaffCount());
 
         $this->actingAs($owner)->post(route('staff.store'), [
@@ -367,13 +389,12 @@ class StaffTest extends TestCase
         $farm = $this->farmOf($owner);
         $this->setPlan($farm, 'basic');
 
-        $response = $this->actingAs($owner)->post(route('staff.store'), [
+        $this->actingAs($owner)->post(route('staff.store'), [
             'name' => 'Yangi',
             'email' => 'yangi@example.com',
             'role' => FarmUser::ROLE_WORKER,
         ]);
-        preg_match('/id="stf-password"[^>]*>([^<]+)</', $response->getContent(), $matches);
-        $temporary = trim($matches[1]);
+        $temporary = $this->passwordFrom($this->actingAs($owner)->get(route('staff.index'))->getContent());
 
         $staff = User::where('email', 'yangi@example.com')->firstOrFail();
 
@@ -405,6 +426,112 @@ class StaffTest extends TestCase
         FarmUser::where('user_id', $other->id)->update(['must_change_password' => true]);
         $this->actingAs($other)->post(route('logout'))->assertRedirect('/');
         $this->assertGuest();
+    }
+
+    public function test_owner_regenerates_temporary_password_for_staff_created_here(): void
+    {
+        $owner = User::factory()->create();
+        $farm = $this->farmOf($owner);
+        $this->setPlan($farm, 'basic');
+
+        $this->actingAs($owner)->post(route('staff.store'), [
+            'name' => 'Unutuvchan',
+            'email' => 'unutdi@example.com',
+            'role' => FarmUser::ROLE_WORKER,
+        ]);
+        $first = $this->passwordFrom($this->actingAs($owner)->get(route('staff.index'))->getContent());
+
+        $staff = User::where('email', 'unutdi@example.com')->firstOrFail();
+        $membership = FarmUser::where('farm_id', $farm->id)->where('user_id', $staff->id)->firstOrFail();
+
+        $this->actingAs($owner)->get(route('staff.index'))->assertOk()
+            ->assertSee(route('staff.password', $membership->id))
+            ->assertSee(__('Yangi vaqtinchalik parol'));
+
+        $this->actingAs($owner)->post(route('staff.password', $membership->id))->assertRedirect(route('staff.index'));
+        $encrypted = session('staff_credentials');
+
+        $response = $this->actingAs($owner)->get(route('staff.index'));
+        $response->assertOk()->assertSee('unutdi@example.com');
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $second = $this->passwordFrom($response->getContent());
+
+        $this->assertSame(10, strlen($second));
+        $this->assertNotSame($first, $second);
+        $this->assertStringNotContainsString($second, $encrypted);
+        $staff->refresh();
+        $this->assertTrue(Hash::check($second, $staff->password));
+        $this->assertFalse(Hash::check($first, $staff->password));
+        $this->assertTrue($membership->fresh()->must_change_password);
+
+        $this->actingAs($owner)->get(route('staff.index'))->assertDontSee($second);
+
+        // Jurnalga yoziladi, parolning o'zi yozilmaydi
+        $log = FarmAuditLog::where('farm_id', $farm->id)->where('amal', FarmAuditLog::ACTION_STAFF_PASSWORD_RESET)->firstOrFail();
+        $this->assertSame($owner->id, (int) $log->user_id);
+        $this->assertSame($staff->id, (int) $log->obyekt_id);
+        $this->assertStringNotContainsString($second, json_encode([$log->eski_qiymat, $log->yangi_qiymat]));
+
+        // Taklif qilgan o'chgan (invited_by NULL), lekin akkaunt shu fermada yaratilgan — ruxsat
+        $membership->forceFill(['invited_by' => null])->save();
+        $this->actingAs($owner)->post(route('staff.password', $membership->id))->assertRedirect(route('staff.index'));
+
+        // Xodim parolni almashtirgach — endi mumkin emas
+        $membership->forceFill(['must_change_password' => false])->save();
+        $this->actingAs($owner)->get(route('staff.index'))->assertDontSee(route('staff.password', $membership->id));
+        $this->actingAs($owner)->post(route('staff.password', $membership->id))->assertForbidden();
+    }
+
+    public function test_temporary_password_reset_is_forbidden_for_other_members(): void
+    {
+        $owner = User::factory()->create();
+        $farm = $this->farmOf($owner);
+        $this->setPlan($farm, 'pro');
+
+        // Mavjud akkaunt (o'z fermasi bor), egasi taklif qilmagan
+        $existing = User::factory()->create();
+        $farm->members()->attach($existing->id, ['role' => FarmUser::ROLE_WORKER, 'status' => FarmUser::STATUS_ACTIVE, 'must_change_password' => true]);
+        $existingMembership = FarmUser::where('farm_id', $farm->id)->where('user_id', $existing->id)->firstOrFail();
+        $oldHash = $existing->password;
+
+        // Akkaunt boshqa fermada yaratilgan (birinchi a'zoligi o'sha yerda)
+        $otherOwner = User::factory()->create();
+        $foreign = $this->addMember($this->farmOf($otherOwner), FarmUser::ROLE_WORKER);
+        $farm->members()->attach($foreign->id, ['role' => FarmUser::ROLE_WORKER, 'status' => FarmUser::STATUS_ACTIVE, 'must_change_password' => true]);
+        $foreignMembership = FarmUser::where('farm_id', $farm->id)->where('user_id', $foreign->id)->firstOrFail();
+
+        // Egasi taklif qilgan, lekin parolni allaqachon almashtirgan
+        $changed = $this->addMember($farm, FarmUser::ROLE_WORKER);
+        $changedMembership = FarmUser::where('farm_id', $farm->id)->where('user_id', $changed->id)->firstOrFail();
+        $changedMembership->forceFill(['invited_by' => $owner->id])->save();
+
+        $ownerMembership = FarmUser::where('farm_id', $farm->id)->where('user_id', $owner->id)->firstOrFail();
+
+        $forbidden = [$existingMembership, $foreignMembership, $changedMembership, $ownerMembership];
+
+        foreach ($forbidden as $membership) {
+            $this->actingAs($owner)->post(route('staff.password', $membership->id))->assertForbidden();
+        }
+
+        $page = $this->actingAs($owner)->get(route('staff.index'))->assertOk();
+
+        foreach ($forbidden as $membership) {
+            $page->assertDontSee(route('staff.password', $membership->id));
+        }
+
+        $this->assertSame($oldHash, $existing->fresh()->password);
+        $this->assertNull(session('staff_credentials'));
+
+        // staff.manage huquqi yo'q (menejer) — 403
+        $manager = $this->addMember($farm, FarmUser::ROLE_MANAGER);
+        $this->actingAs($owner)->post(route('staff.store'), ['name' => 'Yangi', 'email' => 'yangi2@example.com', 'role' => FarmUser::ROLE_WORKER]);
+        $created = FarmUser::where('farm_id', $farm->id)->where('user_id', User::where('email', 'yangi2@example.com')->value('id'))->firstOrFail();
+        $this->actingAs($manager)->post(route('staff.password', $created->id))->assertForbidden();
+
+        // Boshqa fermaning a'zosi — 404
+        $this->actingAs($otherOwner)->post(route('staff.password', $created->id))->assertNotFound();
+
+        $this->assertSame(0, FarmAuditLog::where('amal', FarmAuditLog::ACTION_STAFF_PASSWORD_RESET)->count());
     }
 
     public function test_suspended_member_cannot_access_farm_or_bot(): void

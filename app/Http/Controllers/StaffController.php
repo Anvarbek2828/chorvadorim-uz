@@ -11,7 +11,9 @@ use App\Services\AiUsageService;
 use App\Services\CurrentFarm;
 use App\Services\FarmAuditService;
 use App\Services\FarmStaffService;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -24,16 +26,23 @@ class StaffController extends Controller
     // Egasi faqat shu rollarni bera oladi
     public const ASSIGNABLE_ROLES = [FarmUser::ROLE_MANAGER, FarmUser::ROLE_WORKER, FarmUser::ROLE_VIEWER];
 
+    // Vaqtinchalik parol sessiyaga faqat shifrlangan holda, bir martalik flash bo'lib yoziladi
+    private const CREDENTIALS_FLASH = 'staff_credentials';
+
     public function __construct(private FarmAuditService $audit)
     {
     }
 
     public function index(AiUsageService $usage)
     {
-        return view('staff.index', $this->pageData($this->currentFarm(), $usage));
+        return response()
+            ->view('staff.index', $this->pageData($this->currentFarm(), $usage) + [
+                'credentials' => $this->pullCredentials(),
+            ])
+            ->header('Cache-Control', 'no-store, private');
     }
 
-    public function store(Request $request, FarmStaffService $staff, AiUsageService $usage)
+    public function store(Request $request, FarmStaffService $staff)
     {
         $farm = $this->currentFarm();
 
@@ -96,13 +105,39 @@ class StaffController extends Controller
             ? __(':name xodim sifatida qo\'shildi. Vaqtinchalik parolni hozir nusxalab oling — u boshqa ko\'rsatilmaydi.', ['name' => $member->name])
             : __(':name fermaga a\'zo qilindi. U o\'z paroli bilan kiradi.', ['name' => $member->name]);
 
-        // Parol sessiyaga (flash) yozilmaydi: sahifa redirectsiz shu javobning o'zida ko'rsatiladi
-        return response()
-            ->view('staff.index', $this->pageData($farm, $usage) + [
-                'success' => $message,
-                'credentials' => $password !== null ? ['email' => $member->email, 'password' => $password] : null,
-            ])
-            ->header('Cache-Control', 'no-store, private');
+        if ($password !== null) {
+            $this->flashCredentials($member, $password);
+        }
+
+        return redirect()->route('staff.index')->with('success', $message);
+    }
+
+    /**
+     * Parolni hali almashtirmagan xodimga yangi vaqtinchalik parol. Faqat shu fermada yaratilgan akkauntga ruxsat.
+     */
+    public function resetPassword(FarmUser $member, FarmStaffService $staff)
+    {
+        $farm = $this->currentFarm();
+
+        if ((int) $member->farm_id !== (int) $farm->id) {
+            abort(404);
+        }
+
+        abort_unless($member->canResetTemporaryPassword($farm), 403);
+
+        $user = $member->user;
+        $password = $staff->generatePassword();
+        $user->forceFill(['password' => $password])->save();
+
+        // Parolning o'zi jurnalga yozilmaydi
+        $this->audit->log($farm, FarmAuditLog::ACTION_STAFF_PASSWORD_RESET, 'staff', $user->id, [], [
+            'ism' => $user->name,
+            'email' => $user->email,
+        ]);
+
+        $this->flashCredentials($user, $password);
+
+        return redirect()->route('staff.index');
     }
 
     public function updateRole(Request $request, FarmUser $member)
@@ -209,6 +244,32 @@ class StaffController extends Controller
         if ($member->role === FarmUser::ROLE_OWNER || (int) $member->user_id === (int) auth()->id()) {
             abort(redirect()->route('staff.index')->withErrors(['staff' => __('Ferma egasining a\'zoligini o\'zgartirib bo\'lmaydi.')]));
         }
+    }
+
+    private function flashCredentials(User $user, string $password): void
+    {
+        session()->flash(self::CREDENTIALS_FLASH, Crypt::encryptString(json_encode([
+            'name' => $user->name,
+            'email' => $user->email,
+            'password' => $password,
+        ])));
+    }
+
+    private function pullCredentials(): ?array
+    {
+        $encrypted = session(self::CREDENTIALS_FLASH);
+
+        if (!is_string($encrypted)) {
+            return null;
+        }
+
+        try {
+            $credentials = json_decode(Crypt::decryptString($encrypted), true);
+        } catch (DecryptException) {
+            return null;
+        }
+
+        return is_array($credentials) ? $credentials : null;
     }
 
     private function limitMessage(Farm $farm): string

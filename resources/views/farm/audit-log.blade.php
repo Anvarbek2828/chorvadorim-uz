@@ -20,6 +20,7 @@
         FarmAuditLog::ACTION_STAFF_STATUS_CHANGED => __("Xodim holati o'zgartirildi"),
         FarmAuditLog::ACTION_STAFF_AUTO_SUSPENDED => __("Xodim tarif limiti tufayli to'xtatildi"),
         FarmAuditLog::ACTION_STAFF_REMOVED => __('Xodim fermadan chiqarildi'),
+        FarmAuditLog::ACTION_STAFF_PASSWORD_RESET => __('Xodimga yangi vaqtinchalik parol berildi'),
         FarmAuditLog::ACTION_FARM_RENAMED => __("Ferma nomi o'zgartirildi"),
     ];
 

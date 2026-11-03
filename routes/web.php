@@ -104,6 +104,7 @@ Route::middleware(['auth', 'farm'])->group(function () {
     Route::post('/xodimlar', [App\Http\Controllers\StaffController::class, 'store'])->can('staff.manage')->middleware('throttle:20,1')->name('staff.store');
     Route::patch('/xodimlar/{member}/rol', [App\Http\Controllers\StaffController::class, 'updateRole'])->can('staff.manage')->whereNumber('member')->name('staff.role');
     Route::patch('/xodimlar/{member}/holat', [App\Http\Controllers\StaffController::class, 'updateStatus'])->can('staff.manage')->whereNumber('member')->name('staff.status');
+    Route::post('/xodimlar/{member}/parol', [App\Http\Controllers\StaffController::class, 'resetPassword'])->can('staff.manage')->middleware('throttle:20,1')->whereNumber('member')->name('staff.password');
     Route::delete('/xodimlar/{member}', [App\Http\Controllers\StaffController::class, 'destroy'])->can('staff.manage')->whereNumber('member')->name('staff.destroy');
 
     Route::get('/ferma-jurnali', [App\Http\Controllers\FarmAuditController::class, 'index'])->can('audit.view')->name('farm-audit.index');
