@@ -2,6 +2,8 @@
     // Joriy ferma va almashtirgich uchun faol a'zoliklar (CurrentFarm so'rov davomida eslab qoladi)
     $navFarm = Auth::user()->activeFarm();
     $navMemberships = app(\App\Services\CurrentFarm::class)->activeMemberships(Auth::user());
+    // "Ferma" menyusi guruhidagi sahifalar
+    $navFarmActive = request()->routeIs('plans.*', 'staff.*', 'farm-audit.*', 'farm-settings.*');
 @endphp
 
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -44,23 +46,50 @@
 
                     </x-nav-link>
 
-                    @can('plan.view')
-                        <x-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
-                            {{ __('Tariflar') }}
-                        </x-nav-link>
-                    @endcan
+                    <!-- Ferma: boshqaruv sahifalari bitta ochiladigan menyuda (birorta huquq bo'lmasa chiqmaydi) -->
+                    @canany(['plan.view', 'staff.manage', 'audit.view', 'farm.settings'])
+                        <x-dropdown align="left" width="48">
+                            <x-slot name="trigger">
+                                {{-- pt-4 + h-9 + pb-3 + border = 66px: tagi chizig'i x-nav-link bilan bir balandlikda (sm:-my-px) --}}
+                                <button class="flex items-center px-1 pt-4 pb-3 border-b-2 text-sm font-medium leading-5 focus:outline-none transition duration-150 ease-in-out {{ $navFarmActive ? 'border-indigo-400 text-gray-900 focus:border-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:text-gray-700 focus:border-gray-300' }}">
+                                    <div class="flex items-center h-9">
+                                        <div>{{ __('Ferma') }}</div>
+                                        <div class="ms-1">
+                                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </button>
+                            </x-slot>
 
-                    @can('staff.manage')
-                        <x-nav-link :href="route('staff.index')" :active="request()->routeIs('staff.*')">
-                            {{ __('Xodimlar') }}
-                        </x-nav-link>
-                    @endcan
+                            <x-slot name="content">
+                                @can('plan.view')
+                                    <x-dropdown-link :href="route('plans.index')" class="{{ request()->routeIs('plans.*') ? 'font-semibold' : '' }}">
+                                        {{ __('Tariflar') }}
+                                    </x-dropdown-link>
+                                @endcan
 
-                    @can('audit.view')
-                        <x-nav-link :href="route('farm-audit.index')" :active="request()->routeIs('farm-audit.*')">
-                            {{ __('Ferma jurnali') }}
-                        </x-nav-link>
-                    @endcan
+                                @can('staff.manage')
+                                    <x-dropdown-link :href="route('staff.index')" class="{{ request()->routeIs('staff.*') ? 'font-semibold' : '' }}">
+                                        {{ __('Xodimlar') }}
+                                    </x-dropdown-link>
+                                @endcan
+
+                                @can('audit.view')
+                                    <x-dropdown-link :href="route('farm-audit.index')" class="{{ request()->routeIs('farm-audit.*') ? 'font-semibold' : '' }}">
+                                        {{ __('Ferma jurnali') }}
+                                    </x-dropdown-link>
+                                @endcan
+
+                                @can('farm.settings')
+                                    <x-dropdown-link :href="route('farm-settings.edit')" class="{{ request()->routeIs('farm-settings.*') ? 'font-semibold' : '' }}">
+                                        {{ __('Ferma sozlamalari') }}
+                                    </x-dropdown-link>
+                                @endcan
+                            </x-slot>
+                        </x-dropdown>
+                    @endcanany
 
                     @if (Auth::user()->is_admin)
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
@@ -109,9 +138,9 @@
 
 
 
-                <!-- Joriy ferma: almashtirgich (1 tadan ko'p faol a'zolik bo'lsa) va sozlamalar -->
+                <!-- Joriy ferma: almashtirgich (1 tadan ko'p faol a'zolik bo'lsa); sozlamalar "Ferma" menyusida -->
                 @if ($navFarm)
-                    @if ($navMemberships->count() > 1 || Gate::allows('farm.settings'))
+                    @if ($navMemberships->count() > 1)
                         <x-dropdown align="right" width="48">
                             <x-slot name="trigger">
                                 <button class="inline-flex items-center px-3 py-2 border rounded-md text-sm leading-4 font-medium text-gray-700 bg-white hover:text-gray-900 focus:outline-none transition ease-in-out duration-150" title="{{ __('Joriy ferma') }}">
@@ -125,26 +154,17 @@
                             </x-slot>
 
                             <x-slot name="content">
-                                @if ($navMemberships->count() > 1)
-                                    <div class="px-4 py-2 text-xs text-gray-500">{{ __('Fermani almashtirish') }}</div>
-                                    @foreach ($navMemberships as $navMembership)
-                                        <form method="POST" action="{{ route('farm.switch') }}">
-                                            @csrf
-                                            <input type="hidden" name="farm_id" value="{{ $navMembership->farm_id }}">
-                                            <x-dropdown-link :href="route('dashboard')" class="{{ (int) $navMembership->farm_id === (int) $navFarm->id ? 'font-semibold' : '' }}"
-                                                    onclick="event.preventDefault(); this.closest('form').submit();">
-                                                {{ $navMembership->farm?->name }}
-                                            </x-dropdown-link>
-                                        </form>
-                                    @endforeach
-                                @endif
-
-                                @can('farm.settings')
-                                    <div class="border-t border-gray-100"></div>
-                                    <x-dropdown-link :href="route('farm-settings.edit')">
-                                        {{ __('Ferma sozlamalari') }}
-                                    </x-dropdown-link>
-                                @endcan
+                                <div class="px-4 py-2 text-xs text-gray-500">{{ __('Fermani almashtirish') }}</div>
+                                @foreach ($navMemberships as $navMembership)
+                                    <form method="POST" action="{{ route('farm.switch') }}">
+                                        @csrf
+                                        <input type="hidden" name="farm_id" value="{{ $navMembership->farm_id }}">
+                                        <x-dropdown-link :href="route('dashboard')" class="{{ (int) $navMembership->farm_id === (int) $navFarm->id ? 'font-semibold' : '' }}"
+                                                onclick="event.preventDefault(); this.closest('form').submit();">
+                                            {{ $navMembership->farm?->name }}
+                                        </x-dropdown-link>
+                                    </form>
+                                @endforeach
                             </x-slot>
                         </x-dropdown>
                     @else
@@ -258,23 +278,33 @@
 
             </x-responsive-nav-link>
 
-            @can('plan.view')
-                <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
-                    {{ __('Tariflar') }}
-                </x-responsive-nav-link>
-            @endcan
+            @canany(['plan.view', 'staff.manage', 'audit.view', 'farm.settings'])
+                <div class="px-4 pt-2 text-xs text-gray-500">{{ __('Ferma') }}</div>
 
-            @can('staff.manage')
-                <x-responsive-nav-link :href="route('staff.index')" :active="request()->routeIs('staff.*')">
-                    {{ __('Xodimlar') }}
-                </x-responsive-nav-link>
-            @endcan
+                @can('plan.view')
+                    <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
+                        {{ __('Tariflar') }}
+                    </x-responsive-nav-link>
+                @endcan
 
-            @can('audit.view')
-                <x-responsive-nav-link :href="route('farm-audit.index')" :active="request()->routeIs('farm-audit.*')">
-                    {{ __('Ferma jurnali') }}
-                </x-responsive-nav-link>
-            @endcan
+                @can('staff.manage')
+                    <x-responsive-nav-link :href="route('staff.index')" :active="request()->routeIs('staff.*')">
+                        {{ __('Xodimlar') }}
+                    </x-responsive-nav-link>
+                @endcan
+
+                @can('audit.view')
+                    <x-responsive-nav-link :href="route('farm-audit.index')" :active="request()->routeIs('farm-audit.*')">
+                        {{ __('Ferma jurnali') }}
+                    </x-responsive-nav-link>
+                @endcan
+
+                @can('farm.settings')
+                    <x-responsive-nav-link :href="route('farm-settings.edit')" :active="request()->routeIs('farm-settings.*')">
+                        {{ __('Ferma sozlamalari') }}
+                    </x-responsive-nav-link>
+                @endcan
+            @endcanany
 
             @if (Auth::user()->is_admin)
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
@@ -352,12 +382,6 @@
                         </form>
                     @endforeach
                 @endif
-
-                @can('farm.settings')
-                    <x-responsive-nav-link :href="route('farm-settings.edit')">
-                        {{ __('Ferma sozlamalari') }}
-                    </x-responsive-nav-link>
-                @endcan
 
 
 

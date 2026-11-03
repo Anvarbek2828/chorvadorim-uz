@@ -100,7 +100,7 @@
                 @can('animals.update')
                 <form method="POST" action="{{ route('expenses.store', $animal) }}" class="grid grid-cols-2 gap-3">
                     @csrf
-                    <div><label class="block text-sm text-gray-700">{{ __('Turi') }}</label><input type="text" name="type" placeholder="ozuqa, dori" class="mt-1 block w-full rounded-md border-gray-300" required></div>
+                    <div><label class="block text-sm text-gray-700">{{ __('Turi') }}</label><input type="text" name="type" placeholder="{{ __('ozuqa, dori') }}" class="mt-1 block w-full rounded-md border-gray-300" required></div>
                     <div><label class="block text-sm text-gray-700">{{ __('Summa (so\'m)') }}</label><input type="number" step="0.01" name="amount" class="mt-1 block w-full rounded-md border-gray-300" required></div>
                     <div><label class="block text-sm text-gray-700">{{ __('Sana') }}</label><input type="date" name="expense_date" class="mt-1 block w-full rounded-md border-gray-300" required></div>
                     <div><label class="block text-sm text-gray-700">{{ __('Izoh') }}</label><input type="text" name="note" class="mt-1 block w-full rounded-md border-gray-300"></div>
@@ -132,7 +132,7 @@
                 @can('animals.update')
                 <form method="POST" action="{{ route('incomes.store', $animal) }}" class="grid grid-cols-2 gap-3">
                     @csrf
-                    <div><label class="block text-sm text-gray-700">{{ __('Turi') }}</label><input type="text" name="type" placeholder="sut sotuvi" class="mt-1 block w-full rounded-md border-gray-300" required></div>
+                    <div><label class="block text-sm text-gray-700">{{ __('Turi') }}</label><input type="text" name="type" placeholder="{{ __('sut sotuvi') }}" class="mt-1 block w-full rounded-md border-gray-300" required></div>
                     <div><label class="block text-sm text-gray-700">{{ __('Summa (so\'m)') }}</label><input type="number" step="0.01" name="amount" class="mt-1 block w-full rounded-md border-gray-300" required></div>
                     <div><label class="block text-sm text-gray-700">{{ __('Sana') }}</label><input type="date" name="income_date" class="mt-1 block w-full rounded-md border-gray-300" required></div>
                     <div><label class="block text-sm text-gray-700">{{ __('Izoh') }}</label><input type="text" name="note" class="mt-1 block w-full rounded-md border-gray-300"></div>

@@ -2,7 +2,7 @@
     "Dashboard": "Панель управления",
     "Profile": "Профиль",
     "Log Out": "Выйти",
-    "You're logged in!": "Вы вошли в систему!",
+    "Tizimga kirdingiz!": "Вы вошли в систему!",
     "Mening hayvonlarim": "Мои животные",
     "Arxiv": "Архив",
     "+ Yangi hayvon qo'shish": "+ Добавить животное",
@@ -429,5 +429,11 @@
     "Qo'shish": "Добавить",
     "hayvonlar, eslatmalar, import va o'chirish; tariflar va ferma jurnalini ko'radi.": "животные, напоминания, импорт и удаление; видит тарифы и журнал фермы.",
     "hayvon qo'shadi va tahrirlaydi, xarajat/daromad va eslatma qo'shadi, AI dan foydalanadi; hayvon va eslatmani o'chira olmaydi.": "добавляет и редактирует животных, добавляет расходы/доходы и напоминания, пользуется ИИ; не может удалять животных и напоминания.",
-    "faqat ko'radi, hech narsani o'zgartira olmaydi.": "только просматривает, ничего не может изменить."
+    "faqat ko'radi, hech narsani o'zgartira olmaydi.": "только просматривает, ничего не может изменить.",
+    "Eslatmalar": "Напоминания",
+    "Nima haqida": "О чём",
+    "Masalan: emlash": "Например: вакцинация",
+    "o'tib ketgan": "просрочено",
+    "ozuqa, dori": "корм, лекарства",
+    "sut sotuvi": "продажа молока"
 }
