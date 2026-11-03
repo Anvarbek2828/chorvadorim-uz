@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\AiUsageLog;
 use App\Models\Animal;
+use App\Models\Expense;
 use App\Models\Farm;
 use App\Models\FarmAuditLog;
 use App\Models\FarmUser;
+use App\Models\Income;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -83,6 +85,53 @@ class StaffTest extends TestCase
         $this->actingAs($owner)->get(route('animals.edit', $animal))
             ->assertOk()
             ->assertSee("Bu hayvonni o'chirish");
+    }
+
+    public function test_only_owner_and_manager_delete_finance_records(): void
+    {
+        $owner = User::factory()->create();
+        $farm = $this->farmOf($owner);
+        $this->setPlan($farm, 'basic');
+        $animal = $this->animalIn($farm);
+        $worker = $this->addMember($farm, FarmUser::ROLE_WORKER);
+        $manager = $this->addMember($farm, FarmUser::ROLE_MANAGER);
+
+        $expense = Expense::create(['animal_id' => $animal->id, 'type' => 'yem', 'amount' => 1000, 'expense_date' => '2026-11-01']);
+        $income = Income::create(['animal_id' => $animal->id, 'type' => 'sut', 'amount' => 2000, 'income_date' => '2026-11-01']);
+
+        // Ishchi qo'sha oladi, lekin o'chira olmaydi va x tugmasini ko'rmaydi
+        $this->actingAs($worker)->delete(route('expenses.destroy', [$animal, $expense]))->assertForbidden();
+        $this->actingAs($worker)->delete(route('incomes.destroy', [$animal, $income]))->assertForbidden();
+        $this->assertNotNull($expense->fresh());
+        $this->assertNotNull($income->fresh());
+
+        $this->actingAs($worker)->get(route('animals.show', $animal))
+            ->assertOk()
+            ->assertSee(route('expenses.store', $animal))
+            ->assertSee(route('incomes.store', $animal))
+            ->assertDontSee(route('expenses.destroy', [$animal, $expense]))
+            ->assertDontSee(route('incomes.destroy', [$animal, $income]));
+
+        $this->actingAs($worker)->post(route('expenses.store', $animal), ['type' => 'dori', 'amount' => 500, 'expense_date' => '2026-11-02'])
+            ->assertRedirect(route('animals.show', $animal));
+        $this->assertSame(2, Expense::where('animal_id', $animal->id)->count());
+
+        $this->actingAs($manager)->get(route('animals.show', $animal))
+            ->assertSee(route('expenses.destroy', [$animal, $expense]))
+            ->assertSee(route('incomes.destroy', [$animal, $income]));
+
+        // Menejer va ega o'chiradi
+        $this->actingAs($manager)->delete(route('expenses.destroy', [$animal, $expense]))->assertRedirect(route('animals.show', $animal));
+        $this->actingAs($owner)->delete(route('incomes.destroy', [$animal, $income]))->assertRedirect(route('animals.show', $animal));
+        $this->assertNull($expense->fresh());
+        $this->assertNull($income->fresh());
+
+        $otherExpense = Expense::where('animal_id', $animal->id)->firstOrFail();
+        $otherIncome = Income::create(['animal_id' => $animal->id, 'type' => 'go\'sht', 'amount' => 3000, 'income_date' => '2026-11-03']);
+        $this->actingAs($owner)->delete(route('expenses.destroy', [$animal, $otherExpense]))->assertRedirect(route('animals.show', $animal));
+        $this->actingAs($manager)->delete(route('incomes.destroy', [$animal, $otherIncome]))->assertRedirect(route('animals.show', $animal));
+        $this->assertSame(0, Expense::where('animal_id', $animal->id)->count());
+        $this->assertSame(0, Income::where('animal_id', $animal->id)->count());
     }
 
     public function test_viewer_cannot_create_or_change_anything(): void
@@ -706,5 +755,36 @@ class StaffTest extends TestCase
             ->assertOk()
             ->assertSee('yem')
             ->assertDontSee('Emlash');
+    }
+
+    public function test_farm_audit_log_wraps_and_truncates_long_values(): void
+    {
+        $owner = User::factory()->create();
+        $farm = $this->farmOf($owner);
+        $long = str_repeat('uzun-izoh-', 10);
+
+        $this->actingAs($owner);
+        app(\App\Services\FarmAuditService::class)->log($farm, FarmAuditLog::ACTION_ANIMAL_UPDATED, 'animal', null,
+            ['notes' => 'eski', 'name' => 'Sigir'],
+            ['notes' => $long, 'name' => 'Sigir 2']
+        );
+
+        $label = __('Izoh');
+        $short = \Illuminate\Support\Str::limit($long, 60);
+
+        $html = $this->get(route('farm-audit.index'))
+            ->assertOk()
+            ->assertSee('stf-page', false)
+            // Jadval (keng ekran) va kartalar (tor ekran) — ikkalasida ham qisqartirilgan qiymat, title da to'liq
+            ->assertSee('fj-table', false)
+            ->assertSee('fj-cards', false)
+            ->assertSee($label . ': ' . $short)
+            ->assertSee('title="' . e($label . ': ' . $long) . '"', false)
+            ->getContent();
+
+        $this->assertSame(2, substr_count($html, '>' . e($label . ': ' . $short) . '<'));
+        $this->assertStringNotContainsString('>' . e($label . ': ' . $long) . '<', $html);
+        // Har qiymat alohida qatorda
+        $this->assertSame(2, substr_count($html, '>' . e(__('Nomi') . ': Sigir 2') . '<'));
     }
 }

@@ -17,7 +17,7 @@
 
     @include('farm.partials.styles')
 
-    <div class="py-12">
+    <div class="py-12 stf-page">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             @if (!empty($credentials))
                 <div class="stf-info" id="stf-credentials-block">

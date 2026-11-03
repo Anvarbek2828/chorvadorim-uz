@@ -1,5 +1,6 @@
 @use('App\Models\FarmAuditLog')
 @use('App\Models\FarmUser')
+@use('Illuminate\Support\Str')
 
 @php
     $actionLabels = [
@@ -95,12 +96,36 @@
         return is_scalar($value) ? (string) $value : json_encode($value, JSON_UNESCAPED_UNICODE);
     };
 
+    // Har qiymat alohida qator: "Kalit: qiymat". 60 belgidan uzun qiymat qisqartiriladi, to'liq matn — title da
     $formatChanges = function (?array $values, string $action) use ($fieldLabels, $formatValue) {
         return collect($values ?? [])
-            // Tizim to'xtatganda 'limit' — tarifdagi xodimlar chegarasi
-            ->map(fn ($value, $key) => ($key === 'limit' && str_starts_with($action, 'staff.') ? __('Xodimlar limiti') : ($fieldLabels[$key] ?? $key)) . ': ' . $formatValue($key, $value))
-            ->implode("\n");
+            ->map(function ($value, $key) use ($action, $fieldLabels, $formatValue) {
+                // Tizim to'xtatganda 'limit' — tarifdagi xodimlar chegarasi
+                $label = $key === 'limit' && str_starts_with($action, 'staff.') ? __('Xodimlar limiti') : ($fieldLabels[$key] ?? $key);
+                $full = $formatValue($key, $value);
+                $short = Str::limit($full, 60);
+
+                return [
+                    'text' => $label . ': ' . $short,
+                    'title' => $short !== $full ? $label . ': ' . $full : null,
+                ];
+            })
+            ->values()
+            ->all();
     };
+
+    $rows = $logs->getCollection()->map(fn ($log) => [
+        'time' => $log->created_at?->timezone(config('ai.timezone'))->format('d.m.Y H:i'),
+        'ip' => $log->ip,
+        'user' => $log->user?->name,
+        'userFallback' => $log->amal === FarmAuditLog::ACTION_STAFF_AUTO_SUSPENDED ? __('Tizim') : __("O'chirilgan foydalanuvchi"),
+        'action' => $actionLabels[$log->amal] ?? $log->amal,
+        'object' => ($objectLabels[$log->obyekt_turi] ?? $log->obyekt_turi)
+            . ($log->obyekt_turi === 'animal' && isset($animalNames[$log->obyekt_id]) ? ': ' . $animalNames[$log->obyekt_id] : ''),
+        'objectId' => $log->obyekt_id,
+        'old' => $formatChanges($log->eski_qiymat, $log->amal),
+        'new' => $formatChanges($log->yangi_qiymat, $log->amal),
+    ]);
 @endphp
 
 <x-app-layout>
@@ -110,7 +135,7 @@
 
     @include('farm.partials.styles')
 
-    <div class="py-12">
+    <div class="py-12 stf-page">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <form method="GET" action="{{ route('farm-audit.index') }}" class="flex flex-wrap gap-2 mb-4">
@@ -135,8 +160,17 @@
                 @if ($logs->isEmpty())
                     <p class="text-gray-500">{{ __("Jurnal hozircha bo'sh.") }}</p>
                 @else
-                    <div class="stf-scroll">
-                        <table class="stf-table">
+                    {{-- 768px dan keng: jadval (ustunlar qat'iy, qiymatlar qatorga o'raladi) --}}
+                    <div class="stf-scroll fj-table-wrap">
+                        <table class="stf-table fj-table">
+                            <colgroup>
+                                <col class="fj-col-time">
+                                <col class="fj-col-user">
+                                <col class="fj-col-action">
+                                <col class="fj-col-object">
+                                <col>
+                                <col>
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>{{ __('Vaqt') }}</th>
@@ -145,39 +179,82 @@
                                     <th>{{ __('Obyekt') }}</th>
                                     <th>{{ __('Eski qiymat') }}</th>
                                     <th>{{ __('Yangi qiymat') }}</th>
-                                    <th>{{ __('IP') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($logs as $log)
+                                @foreach ($rows as $row)
                                     <tr>
-                                        <td>{{ $log->created_at?->timezone(config('ai.timezone'))->format('d.m.Y H:i') }}</td>
                                         <td>
-                                            @if ($log->user)
-                                                {{ $log->user->name }}
-                                            @elseif ($log->amal === FarmAuditLog::ACTION_STAFF_AUTO_SUSPENDED)
-                                                <span class="text-gray-500">{{ __('Tizim') }}</span>
+                                            {{ $row['time'] }}
+                                            @if ($row['ip'])
+                                                <div class="text-xs text-gray-500">{{ __('IP') }}: {{ $row['ip'] }}</div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if ($row['user'] !== null)
+                                                {{ $row['user'] }}
                                             @else
-                                                <span class="text-gray-500">{{ __("O'chirilgan foydalanuvchi") }}</span>
+                                                <span class="text-gray-500">{{ $row['userFallback'] }}</span>
                                             @endif
                                         </td>
-                                        <td>{{ $actionLabels[$log->amal] ?? $log->amal }}</td>
+                                        <td>{{ $row['action'] }}</td>
                                         <td>
-                                            {{ $objectLabels[$log->obyekt_turi] ?? $log->obyekt_turi }}
-                                            @if ($log->obyekt_turi === 'animal' && isset($animalNames[$log->obyekt_id]))
-                                                : {{ $animalNames[$log->obyekt_id] }}
-                                            @endif
-                                            @if ($log->obyekt_id)
-                                                <span class="text-xs text-gray-500">#{{ $log->obyekt_id }}</span>
+                                            {{ $row['object'] }}
+                                            @if ($row['objectId'])
+                                                <span class="text-xs text-gray-500">#{{ $row['objectId'] }}</span>
                                             @endif
                                         </td>
-                                        <td class="stf-wrap"><div class="stf-pre">{{ $formatChanges($log->eski_qiymat, $log->amal) }}</div></td>
-                                        <td class="stf-wrap"><div class="stf-pre">{{ $formatChanges($log->yangi_qiymat, $log->amal) }}</div></td>
-                                        <td>{{ $log->ip ?? '—' }}</td>
+                                        @foreach ([$row['old'], $row['new']] as $lines)
+                                            <td>
+                                                @forelse ($lines as $line)
+                                                    <div class="fj-kv" @if ($line['title']) title="{{ $line['title'] }}" @endif>{{ $line['text'] }}</div>
+                                                @empty
+                                                    <span class="text-gray-400">—</span>
+                                                @endforelse
+                                            </td>
+                                        @endforeach
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
+                    </div>
+
+                    {{-- 768px dan tor: kartalar --}}
+                    <div class="fj-cards">
+                        @foreach ($rows as $row)
+                            <div class="fj-card">
+                                <div class="fj-card-head">
+                                    <span>{{ $row['time'] }}</span>
+                                    @if ($row['user'] !== null)
+                                        <span class="font-semibold">{{ $row['user'] }}</span>
+                                    @else
+                                        <span class="text-gray-500">{{ $row['userFallback'] }}</span>
+                                    @endif
+                                </div>
+                                <div class="mt-1">
+                                    <span class="font-semibold">{{ $row['action'] }}</span>
+                                    <span class="text-gray-500">· {{ $row['object'] }}@if ($row['objectId']) #{{ $row['objectId'] }}@endif</span>
+                                </div>
+                                <div class="fj-card-diff">
+                                    @foreach ([__('Eski qiymat') => $row['old'], __('Yangi qiymat') => $row['new']] as $caption => $lines)
+                                        @if (!$loop->first)
+                                            <div class="fj-arrow" aria-hidden="true">→</div>
+                                        @endif
+                                        <div class="fj-card-col">
+                                            <div class="text-xs text-gray-500">{{ $caption }}</div>
+                                            @forelse ($lines as $line)
+                                                <div class="fj-kv" @if ($line['title']) title="{{ $line['title'] }}" @endif>{{ $line['text'] }}</div>
+                                            @empty
+                                                <span class="text-gray-400">—</span>
+                                            @endforelse
+                                        </div>
+                                    @endforeach
+                                </div>
+                                @if ($row['ip'])
+                                    <div class="text-xs text-gray-500 mt-1">{{ __('IP') }}: {{ $row['ip'] }}</div>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
 
                     <div class="mt-4">

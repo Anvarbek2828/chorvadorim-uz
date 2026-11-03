@@ -1,18 +1,40 @@
 {{-- Ferma sahifalari (xodimlar, ferma jurnali) uchun jadval uslublari: yangi Tailwind klasslarisiz --}}
 <style>
-    .stf-scroll { overflow-x: auto; }
+    /* Sahifa hech qachon butunligicha gorizontal surilmaydi: keng jadval faqat o'z kartasi ichida aylanadi */
+    .stf-page { overflow-x: hidden; overflow-x: clip; }
+    .stf-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
     .stf-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
     .stf-table th, .stf-table td { padding: .5rem .75rem; text-align: left; border-bottom: 1px solid #e5e7eb; vertical-align: top; white-space: nowrap; }
     .stf-table th { font-weight: 600; color: #4b5563; background: #f9fafb; }
     .stf-table .stf-num { text-align: right; }
     .stf-table .stf-wrap { white-space: normal; min-width: 14rem; }
     .stf-input { padding: .25rem .5rem; font-size: .875rem; border-radius: .375rem; border: 1px solid #d1d5db; max-width: 100%; }
-    .stf-pre { white-space: pre-wrap; word-break: break-word; font-size: .8125rem; }
     .stf-badge { display: inline-block; padding: .125rem .5rem; border-radius: .25rem; font-size: .75rem; }
     .stf-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: .75rem; border-radius: .375rem; }
     .stf-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: .75rem; border-radius: .375rem; }
     .stf-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1rem; white-space: pre-wrap; word-break: break-all; background: #fff; border: 1px solid #bfdbfe; border-radius: .375rem; padding: .5rem .75rem; margin-top: .5rem; user-select: all; }
     .stf-close { font-size: 1.25rem; line-height: 1; padding: 0 .25rem; color: inherit; background: none; border: 0; cursor: pointer; }
+    /* Ferma jurnali: Vaqt va Xodim tor, Amal o'rtacha, Eski/Yangi qolgan joyni teng bo'lishadi */
+    .fj-table { table-layout: fixed; min-width: 42rem; }
+    .fj-table th, .fj-table td { white-space: normal; overflow-wrap: anywhere; padding: .5rem; }
+    .fj-col-time { width: 6rem; }
+    .fj-col-user { width: 7.5rem; }
+    .fj-col-action { width: 9rem; }
+    .fj-col-object { width: 7.5rem; }
+    .fj-kv { overflow-wrap: anywhere; font-size: .8125rem; }
+    .fj-kv + .fj-kv { margin-top: .125rem; }
+    .fj-kv[title] { cursor: help; }
+    .fj-cards { display: none; }
+    .fj-card { border: 1px solid #e5e7eb; border-radius: .375rem; padding: .75rem; font-size: .875rem; overflow-wrap: anywhere; }
+    .fj-card + .fj-card { margin-top: .75rem; }
+    .fj-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem .75rem; }
+    .fj-card-diff { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .5rem; margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed #e5e7eb; }
+    .fj-arrow { align-self: center; color: #9ca3af; }
+    @media (max-width: 767.98px) {
+        .fj-table-wrap { display: none; }
+        .fj-cards { display: block; }
+    }
+    html.dark .fj-card, html.dark .fj-card-diff { border-color: #3e4c63; }
     html.dark .stf-table th { background: #273548; color: #cbd5e1; }
     html.dark .stf-table th, html.dark .stf-table td { border-color: #3e4c63; }
     html.dark .stf-warning { background: #3a2313; border-color: #78350f; color: #fde68a; }

@@ -114,7 +114,7 @@
                         <div><span class="font-medium">{{ $expense->type }}</span> <span class="text-gray-500">{{ $expense->expense_date->format('d.m.Y') }}</span></div>
                         <div class="flex items-center gap-2">
                             <span class="text-red-700 font-semibold">{{ number_format($expense->amount, 0, '.', ' ') }} {{ __("so'm") }}</span>
-                            @can('animals.update')
+                            @can('animals.delete')
                             <form method="POST" action="{{ route('expenses.destroy', [$animal, $expense]) }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="text-gray-400 hover:text-red-600">x</button>
@@ -146,7 +146,7 @@
                         <div><span class="font-medium">{{ $income->type }}</span> <span class="text-gray-500">{{ $income->income_date->format('d.m.Y') }}</span></div>
                         <div class="flex items-center gap-2">
                             <span class="text-green-700 font-semibold">{{ number_format($income->amount, 0, '.', ' ') }} {{ __("so'm") }}</span>
-                            @can('animals.update')
+                            @can('animals.delete')
                             <form method="POST" action="{{ route('incomes.destroy', [$animal, $income]) }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="text-gray-400 hover:text-red-600">x</button>

@@ -79,13 +79,13 @@ Route::middleware(['auth', 'farm'])->group(function () {
 
     Route::post('/animals/{animal}/expenses', [ExpenseController::class, 'store'])->can('animals.update')->name('expenses.store');
 
-    Route::delete('/animals/{animal}/expenses/{expense}', [ExpenseController::class, 'destroy'])->can('animals.update')->name('expenses.destroy');
+    Route::delete('/animals/{animal}/expenses/{expense}', [ExpenseController::class, 'destroy'])->can('animals.delete')->name('expenses.destroy');
 
 
 
     Route::post('/animals/{animal}/incomes', [IncomeController::class, 'store'])->can('animals.update')->name('incomes.store');
 
-    Route::delete('/animals/{animal}/incomes/{income}', [IncomeController::class, 'destroy'])->can('animals.update')->name('incomes.destroy');
+    Route::delete('/animals/{animal}/incomes/{income}', [IncomeController::class, 'destroy'])->can('animals.delete')->name('incomes.destroy');
 
 
 
