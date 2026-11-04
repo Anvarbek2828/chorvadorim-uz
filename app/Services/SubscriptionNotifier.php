@@ -148,13 +148,22 @@ class SubscriptionNotifier
             SubscriptionNotification::TYPE_BEFORE => $daysPastEnd === 0
                 ? $this->telegram->textFor($user, 'Obunangiz bugun (:date) tugaydi.', ['date' => $date])
                 : $this->telegram->textFor($user, 'Obunangiz :days kundan keyin (:date) tugaydi.', ['days' => -$daysPastEnd, 'date' => $date]),
+            // Bu ikki matnda ferma nomi matnning o'zida (:ferma), shuning uchun alohida sarlavha qo'yilmaydi
             SubscriptionNotification::TYPE_EXPIRED => $this->telegram->textFor(
                 $user,
-                "Obuna tugadi. :days kun ichida to'lang, aks holda ferma faqat o'qish rejimiga o'tadi.",
-                ['days' => SubscriptionService::GRACE_DAYS + 1 - $daysPastEnd]
+                ":ferma — obunangiz muddati tugadi. Iltimos, :days kun ichida to'lovni amalga oshiring, aks holda saytdagi faoliyatingizni to'lov qilinguncha cheklashga majbur bo'lamiz.",
+                ['ferma' => $farm->name, 'days' => SubscriptionService::GRACE_DAYS + 1 - $daysPastEnd]
             ),
-            default => $this->telegram->textFor($user, "Ferma faqat o'qish rejimiga o'tdi. Ma'lumotlaringiz saqlanadi, to'lovdan keyin darhol tiklanadi."),
+            default => $this->telegram->textFor(
+                $user,
+                ":ferma — to'lov qilinmagani sababli saytdagi faoliyatingiz cheklandi. Ma'lumotlaringiz saqlanadi va ko'rinib turadi. To'lov qilinishi bilan hammasi darhol tiklanadi.",
+                ['ferma' => $farm->name]
+            ),
         };
+
+        if ($type !== SubscriptionNotification::TYPE_BEFORE) {
+            return "\u{1F3E0} {$text}";
+        }
 
         return "\u{1F3E0} {$farm->name}\n\n{$text}";
     }

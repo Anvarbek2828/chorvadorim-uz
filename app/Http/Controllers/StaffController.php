@@ -176,7 +176,7 @@ class StaffController extends Controller
 
         // Faqat o'qish rejimida to'xtatish mumkin (xavfsizlik), qayta faollashtirish — yo'q
         if ($activate && $subscriptions->isReadOnly($farm)) {
-            return redirect()->route('staff.index')->withErrors(['staff' => __("Ferma faqat o'qish rejimida: xodimni qayta faollashtirish to'lovdan keyin mumkin.")]);
+            return redirect()->route('staff.index')->withErrors(['staff' => __("To'lov qilinmagani sababli faoliyat cheklangan: xodimni qayta faollashtirish to'lov qilinganidan keyin mumkin.")]);
         }
 
         $error = DB::transaction(function () use ($farm, $member, $activate) {

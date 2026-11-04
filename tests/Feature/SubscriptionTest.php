@@ -267,6 +267,39 @@ class SubscriptionTest extends TestCase
         $this->actingAs($admin)->get(route('admin.users.index', ['q' => $owner->email]))->assertOk()->assertSee(route('admin.farms.show', $farm));
     }
 
+    public function test_payment_via_payment_systems_method(): void
+    {
+        $admin = $this->admin();
+        $owner = User::factory()->create();
+        $farm = $this->farmEndingIn(5, $owner);
+        $pro = Plan::where('kod', 'pro')->firstOrFail();
+        $label = "To'lov tizimlari orqali";
+
+        // Tanlov ro'yxatidagi tartib: bank, to'lov tizimlari, naqd, boshqa
+        $this->assertSame(['bank', 'tolov_tizimi', 'naqd', 'boshqa'], FarmPayment::METHODS);
+        $this->actingAs($admin)->get(route('admin.farms.show', $farm))->assertOk()
+            ->assertSeeInOrder(['value="bank"', 'value="tolov_tizimi"', 'value="naqd"', 'value="boshqa"'], false)
+            ->assertSee(__($label));
+
+        // Ro'yxatda yo'q qiymat — rad etiladi
+        $this->actingAs($admin)->post(route('admin.farms.payment', $farm), [
+            'plan_id' => $pro->id, 'oylar' => 1, 'summa' => 150000, 'usul' => 'karta',
+        ])->assertSessionHasErrors('usul');
+        $this->assertSame(0, FarmPayment::count());
+
+        $this->actingAs($admin)->post(route('admin.farms.payment', $farm), [
+            'plan_id' => $pro->id, 'oylar' => 1, 'summa' => 150000, 'usul' => 'tolov_tizimi', 'hujjat_raqami' => 'PT-9',
+        ])->assertSessionHas('success');
+        $this->assertSame('tolov_tizimi', FarmPayment::firstOrFail()->usul);
+
+        // Admin "To'lovlar" ro'yxati, ferma sahifasidagi tarix va egasining to'lovlar tarixi
+        $this->actingAs($admin)->get(route('admin.payments.index'))->assertOk()->assertSee('150 000')->assertSee(__($label));
+        $this->actingAs($admin)->get(route('admin.farms.show', $farm))->assertOk()->assertSee('PT-9')->assertSee('150 000');
+        $this->actingAs($owner)->get(route('farm-payments.index'))->assertOk()->assertSee('PT-9')->assertSee(__($label));
+        $this->actingAs($owner)->withSession(['locale' => 'ru'])->get(route('farm-payments.index'))->assertOk()->assertSee('Через платёжные системы');
+        $this->actingAs($owner)->withSession(['locale' => 'uz_cyrl'])->get(route('farm-payments.index'))->assertOk()->assertSee('Тўлов тизимлари орқали');
+    }
+
     public function test_payment_with_smaller_plan_suspends_excess_staff(): void
     {
         $admin = $this->admin();
@@ -419,7 +452,7 @@ class SubscriptionTest extends TestCase
         // JSON so'rov — 403
         $this->actingAs($owner)->postJson(route('animals.store'), ['name' => 'Json', 'direction' => 'sut'])
             ->assertForbidden()
-            ->assertJson(['message' => __("Ferma faqat o'qish rejimida: yangi yozuv qo'shish va o'zgartirish vaqtincha yopiq.")]);
+            ->assertJson(['message' => __("Bu amalni hozir bajarib bo'lmaydi: to'lov qilinmagani sababli faoliyat cheklangan.")]);
 
         $this->assertSame(1, Animal::withTrashed()->where('farm_id', $farm->id)->count());
         $this->assertSame('Sigir ' . $farm->id, $animal->fresh()->name);
@@ -434,7 +467,7 @@ class SubscriptionTest extends TestCase
 
         // Xato xabari banner ichida ko'rinadi
         $this->actingAs($owner)->from(route('animals.index'))->post(route('animals.store'), ['name' => 'X', 'direction' => 'sut']);
-        $this->actingAs($owner)->get(route('animals.index'))->assertSee(__("Ferma faqat o'qish rejimida: yangi yozuv qo'shish va o'zgartirish vaqtincha yopiq."));
+        $this->actingAs($owner)->get(route('animals.index'))->assertSee(__("Bu amalni hozir bajarib bo'lmaydi: to'lov qilinmagani sababli faoliyat cheklangan."));
     }
 
     public function test_read_only_whitelist_and_staff_security_actions(): void
@@ -533,6 +566,69 @@ class SubscriptionTest extends TestCase
         $this->assertSame('basic', $grace->fresh()->activePlan()->kod);
     }
 
+    public function test_admin_pages_show_no_subscription_banner_and_admin_actions_work_for_restricted_admin(): void
+    {
+        $yellow = 'class="obn-banner obn-banner-sariq"';
+        $red = 'class="obn-banner obn-banner-qizil"';
+        $grey = 'class="obn-banner obn-banner-kulrang"';
+
+        // Admin — cheklangan fermaning egasi
+        $admin = $this->admin();
+        $adminFarm = $this->setPlan($this->farmOf($admin), 'basic', '2026-10-01');
+        $target = $this->farmEndingIn(-20);
+        $this->assertSame(SubscriptionService::STATUS_READ_ONLY, $this->farmStatus($adminFarm));
+
+        $adminPages = [
+            route('admin.dashboard'),
+            route('admin.payments.index'),
+            route('admin.payments.index', ['filtr' => SubscriptionService::STATUS_READ_ONLY]),
+            route('admin.farms.show', $target),
+            route('admin.users.index'),
+        ];
+
+        // Oddiy sahifada qizil banner bor, admin sahifalarida yo'q
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee($red, false);
+        foreach ($adminPages as $url) {
+            $this->actingAs($admin)->get($url)->assertOk()
+                ->assertDontSee($red, false)->assertDontSee($yellow, false)->assertDontSee($grey, false);
+        }
+
+        // Admin holat belgisi va filtri — "Cheklangan"
+        $this->actingAs($admin)->get(route('admin.payments.index', ['filtr' => SubscriptionService::STATUS_READ_ONLY]))
+            ->assertSee(__('Cheklangan'))->assertSee($target->name)->assertDontSee("Faqat o'qish");
+        $this->actingAs($admin)->get(route('admin.farms.show', $target))->assertSee(__('Cheklangan'));
+
+        // Admin amallari ishlaydi: to'lov, bonus, foydalanuvchini bloklash
+        $this->actingAs($admin)->post(route('admin.farms.payment', $target), [
+            'plan_id' => Plan::where('kod', 'basic')->value('id'), 'oylar' => 1, 'summa' => 1, 'usul' => 'tolov_tizimi',
+        ])->assertSessionHas('success')->assertSessionMissing(EnsureFarmWritable::FLASH);
+        $this->assertSame(SubscriptionService::STATUS_ACTIVE, $this->farmStatus($target));
+        $other = $this->farmEndingIn(-10);
+        $this->actingAs($admin)->post(route('admin.farms.bonus', $other), ['sabab' => 'Uzr', 'plan_id' => Plan::where('kod', 'basic')->value('id')])
+            ->assertSessionHas('success')->assertSessionMissing(EnsureFarmWritable::FLASH);
+        $this->assertSame(SubscriptionService::STATUS_ACTIVE, $this->farmStatus($other));
+        $this->actingAs($admin)->patch(route('admin.users.block', $target->owner))->assertSessionHas('success');
+        // Adminning o'z fermasi hali cheklangan
+        $this->assertSame(SubscriptionService::STATUS_READ_ONLY, $this->farmStatus($adminFarm));
+
+        // Imtiyoz (sariq) ham admin sahifalarida ko'rinmaydi
+        $this->setPlan($adminFarm, 'basic', '2026-11-09');
+        $this->actingAs($admin)->get(route('dashboard'))->assertSee($yellow, false);
+        foreach ($adminPages as $url) {
+            $this->actingAs($admin)->get($url)->assertOk()->assertDontSee($yellow, false);
+        }
+
+        // Kulrang: admin cheklangan fermada ishchi bo'lsa ham
+        $restrictedOwner = User::factory()->create();
+        $restricted = $this->farmEndingIn(-5, $restrictedOwner);
+        $workerAdmin = $this->addMember($restricted, FarmUser::ROLE_WORKER);
+        $workerAdmin->forceFill(['is_admin' => true])->save();
+        $this->actingAs($workerAdmin)->get(route('dashboard'))->assertSee($grey, false);
+        foreach ($adminPages as $url) {
+            $this->actingAs($workerAdmin)->get($url)->assertOk()->assertDontSee($grey, false);
+        }
+    }
+
     public function test_expired_paid_farm_keeps_plan_limits_and_staff(): void
     {
         $admin = $this->admin();
@@ -574,7 +670,7 @@ class SubscriptionTest extends TestCase
         foreach ([$owner, $manager] as $user) {
             $this->actingAs($user)->get(route('dashboard'))->assertOk()
                 ->assertSee($yellow, false)
-                ->assertSee(__("Obunangiz muddati tugadi, to'lov qiling. :days kundan keyin ferma faqat o'qish rejimiga o'tadi.", ['days' => 2]));
+                ->assertSee(__("Obunangiz muddati tugadi. Iltimos, to'lovni amalga oshiring. Agar :days kun ichida to'lov qilinmasa, saytdagi faoliyatingizni to'lov qilinguncha cheklashga majbur bo'lamiz.", ['days' => 2]));
         }
         foreach ([$worker, $viewer] as $user) {
             $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertDontSee($yellow, false)->assertDontSee($grey, false)->assertDontSee($red, false);
@@ -583,11 +679,12 @@ class SubscriptionTest extends TestCase
         // Faqat o'qish: ega va menejer — qizil, ishchi va kuzatuvchi — kulrang
         $this->setPlan($farm, 'basic', '2026-11-07');
         foreach ([$owner, $manager] as $user) {
-            $this->actingAs($user)->get(route('dashboard'))->assertSee($red, false)->assertDontSee($grey, false);
+            $this->actingAs($user)->get(route('dashboard'))->assertSee($red, false)->assertDontSee($grey, false)
+                ->assertSee(__("To'lov qilinmagani sababli saytdagi faoliyatingiz cheklandi. Ma'lumotlaringizni ko'rishingiz mumkin, lekin yangi ma'lumot kiritib bo'lmaydi. To'lov qilinishi bilan hammasi darhol tiklanadi."));
         }
         foreach ([$worker, $viewer] as $user) {
             $this->actingAs($user)->get(route('dashboard'))->assertSee($grey, false)->assertDontSee($red, false)
-                ->assertSee(__("Ferma vaqtincha faqat o'qish rejimida."));
+                ->assertSee(__("Fermada yangi ma'lumot kiritish vaqtincha cheklangan. Batafsil ma'lumot uchun ferma egasiga murojaat qiling."));
         }
 
         // Faol, bepul, muddatsiz — banner yo'q
@@ -663,7 +760,9 @@ class SubscriptionTest extends TestCase
         // T+1: tugadi
         $this->travelTo(CarbonImmutable::parse('2026-11-14 09:00', 'Asia/Tashkent'));
         $notifier->run();
-        $this->assertSame(1, $sentTo('222', __("Obuna tugadi. :days kun ichida to'lang, aks holda ferma faqat o'qish rejimiga o'tadi.", ['days' => 2])));
+        $expired = ":ferma — obunangiz muddati tugadi. Iltimos, :days kun ichida to'lovni amalga oshiring, aks holda saytdagi faoliyatingizni to'lov qilinguncha cheklashga majbur bo'lamiz.";
+        $this->assertSame(1, $sentTo('222', __($expired, ['ferma' => $farm->name, 'days' => 2])));
+        $this->assertSame(1, $sentTo('111', __($expired, ['ferma' => $farm->name, 'days' => 2], 'ru')));
         $this->travelTo(CarbonImmutable::parse('2026-11-15 09:00', 'Asia/Tashkent'));
         $notifier->run();
         $this->assertSame(2, $sentTo('222', ''));
@@ -671,8 +770,12 @@ class SubscriptionTest extends TestCase
         // T+3: faqat o'qish; jurnalga tizim nomidan bir marta yoziladi
         $this->travelTo(CarbonImmutable::parse('2026-11-16 09:00', 'Asia/Tashkent'));
         $notifier->run();
-        $this->assertSame(1, $sentTo('222', __("Ferma faqat o'qish rejimiga o'tdi. Ma'lumotlaringiz saqlanadi, to'lovdan keyin darhol tiklanadi.")));
-        $this->assertSame(1, $sentTo('111', __("Ferma faqat o'qish rejimiga o'tdi. Ma'lumotlaringiz saqlanadi, to'lovdan keyin darhol tiklanadi.", [], 'ru')));
+        $restricted = ":ferma — to'lov qilinmagani sababli saytdagi faoliyatingiz cheklandi. Ma'lumotlaringiz saqlanadi va ko'rinib turadi. To'lov qilinishi bilan hammasi darhol tiklanadi.";
+        $this->assertSame(1, $sentTo('222', __($restricted, ['ferma' => $farm->name])));
+        $this->assertSame(1, $sentTo('111', __($restricted, ['ferma' => $farm->name], 'ru')));
+        // Ferma nomi matnning o'zida: alohida sarlavha bilan takrorlanmaydi (ru — bitta tilda, butun matn)
+        $this->assertSame(1, Http::recorded(fn ($request) => ($request['chat_id'] ?? null) === '111'
+            && ($request['text'] ?? '') === "\u{1F3E0} " . __($restricted, ['ferma' => $farm->name], 'ru'))->count());
         $this->assertDatabaseHas('farm_audit_logs', ['farm_id' => $farm->id, 'amal' => FarmAuditLog::ACTION_READ_ONLY_STARTED, 'user_id' => null]);
 
         $this->travelTo(CarbonImmutable::parse('2026-11-20 09:00', 'Asia/Tashkent'));
@@ -867,7 +970,7 @@ class SubscriptionTest extends TestCase
         $callback('watch:approve:' . $pending->id);
         $this->assertSame(BankAnimalWatcher::STATUS_PENDING, $pending->fresh()->status);
         Http::assertSent(fn ($request) => ($request['chat_id'] ?? null) === '111'
-            && str_contains($request['text'] ?? '', "Ferma faqat o'qish rejimida: yangi yozuv qo'shish va o'zgartirish vaqtincha yopiq."));
+            && str_contains($request['text'] ?? '', "Bu amalni hozir bajarib bo'lmaydi: to'lov qilinmagani sababli faoliyat cheklangan."));
         Http::assertNotSent(fn ($request) => ($request['chat_id'] ?? null) === '501');
 
         // Rad etish va bekor qilish — ochiq

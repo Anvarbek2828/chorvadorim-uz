@@ -6,10 +6,10 @@
         'hammasi' => __('Hammasi'),
         'yaqin' => __('Muddati yaqin (7 kun ichida)'),
         SubscriptionService::STATUS_GRACE => __('Imtiyozda'),
-        SubscriptionService::STATUS_READ_ONLY => __("Faqat o'qish"),
+        SubscriptionService::STATUS_READ_ONLY => __('Cheklangan'),
         SubscriptionService::STATUS_UNLIMITED => __('Muddatsiz'),
     ];
-    $methodLabels = ['bank' => __("Bank o'tkazmasi"), 'naqd' => __('Naqd'), 'boshqa' => __('Boshqa')];
+    $methodLabels = \App\Models\FarmPayment::methodLabels();
 @endphp
 
 <x-app-layout>

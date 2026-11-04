@@ -52,7 +52,7 @@ class EnsureFarmWritable
             return $next($request);
         }
 
-        $message = __("Ferma faqat o'qish rejimida: yangi yozuv qo'shish va o'zgartirish vaqtincha yopiq.");
+        $message = __("Bu amalni hozir bajarib bo'lmaydi: to'lov qilinmagani sababli faoliyat cheklangan.");
 
         if ($request->expectsJson()) {
             return response()->json(['message' => $message], 403);

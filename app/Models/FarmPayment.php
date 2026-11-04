@@ -12,7 +12,8 @@ class FarmPayment extends Model
     public const TYPE_PAYMENT = 'tolov';
     public const TYPE_BONUS = 'bonus';
 
-    public const METHODS = ['bank', 'naqd', 'boshqa'];
+    // Ro'yxatdagi tartib: bank, to'lov tizimlari, naqd, boshqa (bazadagi ENUM tartibi boshqacha — bu muhim emas)
+    public const METHODS = ['bank', 'tolov_tizimi', 'naqd', 'boshqa'];
 
     protected $fillable = [
         'farm_id',
@@ -61,6 +62,19 @@ class FarmPayment extends Model
     public function cancelledBy()
     {
         return $this->belongsTo(User::class, 'bekor_admin_id');
+    }
+
+    /**
+     * To'lov usullari yorliqlari (METHODS tartibida), joriy tilda.
+     */
+    public static function methodLabels(): array
+    {
+        return [
+            'bank' => __("Bank o'tkazmasi"),
+            'tolov_tizimi' => __("To'lov tizimlari orqali"),
+            'naqd' => __('Naqd'),
+            'boshqa' => __('Boshqa'),
+        ];
     }
 
     public function isCancelled(): bool

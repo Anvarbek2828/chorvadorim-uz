@@ -2,7 +2,7 @@
 @use('App\Services\SubscriptionService')
 
 @php
-    $methodLabels = ['bank' => __("Bank o'tkazmasi"), 'naqd' => __('Naqd'), 'boshqa' => __('Boshqa')];
+    $methodLabels = \App\Models\FarmPayment::methodLabels();
 @endphp
 
 <x-app-layout>

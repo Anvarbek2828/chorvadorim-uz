@@ -241,7 +241,7 @@ class SubscriptionService
             self::STATUS_UNLIMITED => __('Muddatsiz'),
             self::STATUS_ACTIVE => __('Faol'),
             self::STATUS_GRACE => __('Imtiyozda'),
-            self::STATUS_READ_ONLY => __("Faqat o'qish"),
+            self::STATUS_READ_ONLY => __('Cheklangan'),
             default => $status,
         };
     }

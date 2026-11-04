@@ -479,7 +479,7 @@ class TelegramController extends Controller
             $this->answerCallback($callbackId);
         }
 
-        $this->sendMessage($chatId, $this->telegram->textFor($user, "Ferma faqat o'qish rejimida: yangi yozuv qo'shish va o'zgartirish vaqtincha yopiq."));
+        $this->sendMessage($chatId, $this->telegram->textFor($user, "Bu amalni hozir bajarib bo'lmaydi: to'lov qilinmagani sababli faoliyat cheklangan."));
 
         return false;
     }

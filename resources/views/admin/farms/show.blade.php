@@ -3,7 +3,7 @@
 @use('App\Services\SubscriptionService')
 
 @php
-    $methodLabels = ['bank' => __("Bank o'tkazmasi"), 'naqd' => __('Naqd'), 'boshqa' => __('Boshqa')];
+    $methodLabels = \App\Models\FarmPayment::methodLabels();
     $roleLabels = [
         FarmUser::ROLE_OWNER => __('Ega'),
         FarmUser::ROLE_MANAGER => __('Menejer'),

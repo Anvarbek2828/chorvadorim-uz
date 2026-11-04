@@ -1,6 +1,7 @@
-{{-- Obuna holati banneri (yopib bo'lmaydi): imtiyoz — sariq (ega/menejer), faqat o'qish — qizil (ega/menejer) yoki kulrang (boshqalar) --}}
+{{-- Obuna holati banneri (yopib bo'lmaydi): imtiyoz — sariq (ega/menejer), cheklangan — qizil (ega/menejer) yoki kulrang (boshqalar). Admin sahifalarida yo'q --}}
 @php
-    $bannerFarm = Auth::user()?->activeFarm();
+    // Admin panel (/admin/...) obuna cheklovidan tashqarida: u yerda bannerlar ko'rsatilmaydi
+    $bannerFarm = request()->routeIs('admin.*') ? null : Auth::user()?->activeFarm();
     $bannerSubscriptions = app(\App\Services\SubscriptionService::class);
     $bannerStatus = $bannerFarm ? $bannerSubscriptions->status($bannerFarm) : null;
     $bannerManages = Gate::allows('plan.view');
@@ -21,16 +22,16 @@
 
 @if ($bannerStatus === \App\Services\SubscriptionService::STATUS_GRACE && $bannerManages)
     <div class="obn-banner obn-banner-sariq" role="alert">
-        {{ __("Obunangiz muddati tugadi, to'lov qiling. :days kundan keyin ferma faqat o'qish rejimiga o'tadi.", ['days' => $bannerSubscriptions->daysUntilReadOnly($bannerFarm)]) }}
+        {{ __("Obunangiz muddati tugadi. Iltimos, to'lovni amalga oshiring. Agar :days kun ichida to'lov qilinmasa, saytdagi faoliyatingizni to'lov qilinguncha cheklashga majbur bo'lamiz.", ['days' => $bannerSubscriptions->daysUntilReadOnly($bannerFarm)]) }}
     </div>
 @elseif ($bannerStatus === \App\Services\SubscriptionService::STATUS_READ_ONLY)
     @if ($bannerManages)
         <div class="obn-banner obn-banner-qizil" role="alert">
-            {{ __("Ferma faqat o'qish rejimida. To'lov qiling.") }}
+            {{ __("To'lov qilinmagani sababli saytdagi faoliyatingiz cheklandi. Ma'lumotlaringizni ko'rishingiz mumkin, lekin yangi ma'lumot kiritib bo'lmaydi. To'lov qilinishi bilan hammasi darhol tiklanadi.") }}
         </div>
     @else
         <div class="obn-banner obn-banner-kulrang" role="status">
-            {{ __("Ferma vaqtincha faqat o'qish rejimida.") }}
+            {{ __("Fermada yangi ma'lumot kiritish vaqtincha cheklangan. Batafsil ma'lumot uchun ferma egasiga murojaat qiling.") }}
         </div>
     @endif
 @endif
