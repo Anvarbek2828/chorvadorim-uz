@@ -8,6 +8,9 @@
         AdminAuditLog::ACTION_USER_MADE_ADMIN => __('Admin qilindi'),
         AdminAuditLog::ACTION_PLAN_UPDATED => __('Tarif tahrirlandi'),
         AdminAuditLog::ACTION_USER_ANIMALS_IMPORTED => __('Hayvonlar fayldan yuklandi'),
+        AdminAuditLog::ACTION_SUBSCRIPTION_EXTENDED => __('Obuna uzaytirildi'),
+        AdminAuditLog::ACTION_SUBSCRIPTION_BONUS => __('Bonus berildi'),
+        AdminAuditLog::ACTION_PAYMENT_CANCELLED => __("To'lov bekor qilindi"),
     ];
 
     $fieldLabels = [
@@ -28,6 +31,10 @@
         'qoshildi' => __("Qo'shildi"),
         'xato' => __('Xato'),
         'limit' => __('Tarif limitidan oshgan'),
+        'tolov_id' => __("To'lov ID"),
+        'oylar' => __('Oylar'),
+        'summa' => __("Summa (so'm)"),
+        'sabab' => __('Sabab'),
     ];
 
     $formatValue = function ($value) {

@@ -107,6 +107,8 @@ Route::middleware(['auth', 'farm'])->group(function () {
     Route::post('/xodimlar/{member}/parol', [App\Http\Controllers\StaffController::class, 'resetPassword'])->can('staff.manage')->middleware('throttle:20,1')->whereNumber('member')->name('staff.password');
     Route::delete('/xodimlar/{member}', [App\Http\Controllers\StaffController::class, 'destroy'])->can('staff.manage')->whereNumber('member')->name('staff.destroy');
 
+    Route::get('/ferma/tolovlar', [App\Http\Controllers\FarmPaymentController::class, 'index'])->can('payments.view')->name('farm-payments.index');
+
     Route::get('/ferma-jurnali', [App\Http\Controllers\FarmAuditController::class, 'index'])->can('audit.view')->name('farm-audit.index');
 
     Route::get('/ferma/sozlamalar', [App\Http\Controllers\FarmController::class, 'edit'])->can('farm.settings')->name('farm-settings.edit');
@@ -140,6 +142,11 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/plans', [App\Http\Controllers\Admin\PlanController::class, 'index'])->name('plans.index');
     Route::patch('/plans/{plan}', [App\Http\Controllers\Admin\PlanController::class, 'update'])->name('plans.update');
     Route::get('/audit-log', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-log');
+    Route::get('/tolovlar', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('payments.index');
+    Route::post('/tolovlar/{payment}/bekor', [App\Http\Controllers\Admin\PaymentController::class, 'cancel'])->whereNumber('payment')->name('payments.cancel');
+    Route::get('/fermalar/{farm}', [App\Http\Controllers\Admin\FarmController::class, 'show'])->whereNumber('farm')->name('farms.show');
+    Route::post('/fermalar/{farm}/tolov', [App\Http\Controllers\Admin\FarmController::class, 'storePayment'])->whereNumber('farm')->name('farms.payment');
+    Route::post('/fermalar/{farm}/bonus', [App\Http\Controllers\Admin\FarmController::class, 'storeBonus'])->whereNumber('farm')->name('farms.bonus');
 });
 
 
@@ -155,6 +162,9 @@ Route::get('/lang/{locale}', function (string $locale) {
 
         session(['locale' => $locale]);
 
+        // Bot xabarlari foydalanuvchi tilida yuborilishi uchun
+        auth()->user()?->forceFill(['locale' => $locale])->save();
+
     }
 
     return back();
@@ -163,6 +173,9 @@ Route::get('/lang/{locale}', function (string $locale) {
 
 
 
+
+// Kunlik obuna ishining zaxira chaqiruvi (tashqi cron yoki qo'lda). Token bo'sh yoki noto'g'ri — 404
+Route::get('/cron/obuna/{token}', [App\Http\Controllers\CronController::class, 'obuna'])->middleware('throttle:10,1')->name('cron.obuna');
 
 Route::post('/telegram/webhook', [App\Http\Controllers\TelegramController::class, 'webhook'])->name('telegram.webhook');
 
@@ -180,6 +193,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'farm'])->group(function () {
 
     Route::post('/animals/{animal}/reminders', [App\Http\Controllers\ReminderController::class, 'store'])->can('reminders.manage')->name('reminders.store');
+
+    Route::post('/animals/{animal}/reminders/{reminder}/bajarildi', [App\Http\Controllers\ReminderController::class, 'complete'])->can('reminders.complete')->name('reminders.complete');
 
     Route::delete('/animals/{animal}/reminders/{reminder}', [App\Http\Controllers\ReminderController::class, 'destroy'])->can('reminders.delete')->name('reminders.destroy');
 

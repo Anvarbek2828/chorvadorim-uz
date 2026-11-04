@@ -62,7 +62,7 @@
                                         </td>
                                         <td>
                                             @if ($membership?->farm)
-                                                {{ $membership->farm->name }}
+                                                <a href="{{ route('admin.farms.show', $membership->farm) }}" class="underline">{{ $membership->farm->name }}</a>
                                                 <div class="text-xs text-gray-500">
                                                     @if ($membership->role === \App\Models\FarmUser::ROLE_OWNER)
                                                         {{ __('Ega') }}

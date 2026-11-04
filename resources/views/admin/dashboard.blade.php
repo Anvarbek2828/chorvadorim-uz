@@ -104,9 +104,36 @@
                 </div>
                 @if ($expiredPlans > 0)
                     <p class="text-sm text-gray-500 mt-3">
-                        {{ __('Shulardan :count tasining tarif muddati tugagan (ular bepul tarif limitlari bilan ishlaydi).', ['count' => $expiredPlans]) }}
+                        {{ __('Shulardan :count tasining tarif muddati tugagan.', ['count' => $expiredPlans]) }}
                     </p>
                 @endif
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 class="font-semibold text-lg mb-4">{{ __('Kunlik tekshiruv') }}</h3>
+                <div class="adm-scroll">
+                    <table class="adm-table">
+                        <thead>
+                            <tr>
+                                <th>{{ __('Ish') }}</th>
+                                <th>{{ __('Oxirgi ishga tushgan') }}</th>
+                                <th>{{ __('Tugagan') }}</th>
+                                <th>{{ __('Natija') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($systemRuns as $run)
+                                <tr>
+                                    <td>{{ ['obuna' => __('Obuna xabarlari'), 'eslatmalar' => __('Eslatmalar')][$run->nom] ?? $run->nom }}</td>
+                                    <td>{{ $run->last_started_at ? \Illuminate\Support\Carbon::parse($run->last_started_at, 'UTC')->timezone(config('ai.timezone'))->format('d.m.Y H:i') : __('Hali ishlamagan') }}</td>
+                                    <td>{{ $run->last_finished_at ? \Illuminate\Support\Carbon::parse($run->last_finished_at, 'UTC')->timezone(config('ai.timezone'))->format('d.m.Y H:i') : '—' }}</td>
+                                    <td class="adm-wrap"><span class="adm-pre">{{ $run->last_result ?? '—' }}</span></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">{{ __("Har kuni Toshkent vaqti bilan 08:00 dan keyingi birinchi so'rovda ishga tushadi.") }}</p>
             </div>
         </div>
     </div>

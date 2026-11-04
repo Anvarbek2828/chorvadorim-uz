@@ -17,8 +17,9 @@ class PlanController extends Controller
 
         return view('plans.index', [
             'summary' => $usage->summary($farm),
-            'planExpired' => $farm->plan_id !== null && $farm->isPlanExpired(),
-            'planEndsAt' => $farm->isPlanExpired() ? null : $farm->plan_tugash_sanasi,
+            // Muddati o'tgan pullik tarif limitlari saqlanadi; holat banner orqali ko'rsatiladi
+            'planExpired' => $farm->plan_id !== null && $farm->plan?->kod !== Plan::FREE && $farm->isPlanExpired(),
+            'planEndsAt' => $farm->plan_tugash_sanasi,
             'plans' => Plan::where('faol', true)->orderBy('max_hayvon')->get(),
         ]);
     }

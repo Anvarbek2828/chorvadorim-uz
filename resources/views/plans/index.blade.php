@@ -18,7 +18,7 @@
 
                 @if ($planExpired)
                     <div class="mb-4 bg-orange-50 text-orange-700 p-3 rounded">
-                        {{ __("Tarifingiz muddati tugagan. Hozir bepul tarif limitlari amal qiladi.") }}
+                        {{ __('Tarifingiz muddati :date kuni tugagan.', ['date' => $planEndsAt->format('d.m.Y')]) }}
                     </div>
                 @elseif ($planEndsAt && $current->kod !== \App\Models\Plan::FREE)
                     <p class="text-sm text-gray-500 mb-4">

@@ -8,6 +8,7 @@ use App\Models\Animal;
 use App\Models\Plan;
 use App\Models\User;
 use App\Services\AiUsageService;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -52,6 +53,8 @@ class DashboardController extends Controller
             'expiredPlans' => User::whereNotNull('plan_tugash_sanasi')
                 ->where('plan_tugash_sanasi', '<', now($tz)->toDateString())
                 ->count(),
+            // Kunlik ishlar (obuna xabarlari, eslatmalar): oxirgi ishga tushish va natija
+            'systemRuns' => DB::table('system_runs')->orderBy('nom')->get(),
         ]);
     }
 }

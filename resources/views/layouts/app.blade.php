@@ -156,6 +156,8 @@
 
             @include('layouts.navigation')
 
+            @include('layouts.partials.subscription-banner')
+
 
 
             <!-- Page Heading -->

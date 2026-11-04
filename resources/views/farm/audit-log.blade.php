@@ -23,6 +23,11 @@
         FarmAuditLog::ACTION_STAFF_REMOVED => __('Xodim fermadan chiqarildi'),
         FarmAuditLog::ACTION_STAFF_PASSWORD_RESET => __('Xodimga yangi vaqtinchalik parol berildi'),
         FarmAuditLog::ACTION_FARM_RENAMED => __("Ferma nomi o'zgartirildi"),
+        FarmAuditLog::ACTION_REMINDER_COMPLETED => __('Eslatma bajarildi'),
+        FarmAuditLog::ACTION_SUBSCRIPTION_EXTENDED => __('Obuna uzaytirildi'),
+        FarmAuditLog::ACTION_SUBSCRIPTION_BONUS => __('Bonus berildi'),
+        FarmAuditLog::ACTION_PAYMENT_CANCELLED => __("To'lov bekor qilindi"),
+        FarmAuditLog::ACTION_READ_ONLY_STARTED => __("Ferma faqat o'qish rejimiga o'tdi"),
     ];
 
     $objectLabels = [
@@ -33,6 +38,7 @@
         'income' => __('Daromad'),
         'staff' => __('Xodim'),
         'farm' => __('Ferma'),
+        'subscription' => __('Obuna'),
     ];
 
     $fieldLabels = [
@@ -64,6 +70,12 @@
         'qatorlar' => __('Jami qatorlar'),
         'qoshildi' => __("Qo'shildi"),
         'xato' => __('Xato'),
+        'plan' => __('Tarif'),
+        'tarif' => __('Tarif'),
+        'plan_tugash_sanasi' => __('Tugash sanasi'),
+        'tolov_id' => __("To'lov ID"),
+        'oylar' => __('Oylar'),
+        'sabab' => __('Sabab'),
     ];
 
     $valueLabels = [
@@ -118,7 +130,7 @@
         'time' => $log->created_at?->timezone(config('ai.timezone'))->format('d.m.Y H:i'),
         'ip' => $log->ip,
         'user' => $log->user?->name,
-        'userFallback' => $log->amal === FarmAuditLog::ACTION_STAFF_AUTO_SUSPENDED ? __('Tizim') : __("O'chirilgan foydalanuvchi"),
+        'userFallback' => in_array($log->amal, [FarmAuditLog::ACTION_STAFF_AUTO_SUSPENDED, FarmAuditLog::ACTION_READ_ONLY_STARTED], true) ? __('Tizim') : __("O'chirilgan foydalanuvchi"),
         'action' => $actionLabels[$log->amal] ?? $log->amal,
         'object' => ($objectLabels[$log->obyekt_turi] ?? $log->obyekt_turi)
             . ($log->obyekt_turi === 'animal' && isset($animalNames[$log->obyekt_id]) ? ': ' . $animalNames[$log->obyekt_id] : ''),

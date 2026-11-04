@@ -57,14 +57,26 @@
                 @if ($animal->reminders->isNotEmpty())
                 <div class="mt-4 border-t pt-4 space-y-2">
                     @foreach ($animal->reminders as $reminder)
-                    <div class="flex justify-between items-center text-sm">
+                    @php($reminderOverdue = !$reminder->isDone() && $reminder->due_date->isPast())
+                    <div class="flex justify-between items-center text-sm gap-2">
                         <div>
                             <span class="font-medium">{{ $reminder->title }}</span>
-                            <span class="{{ $reminder->due_date->isPast() ? 'text-red-600' : 'text-gray-500' }}">
+                            <span class="{{ $reminderOverdue ? 'text-red-600' : 'text-gray-500' }}">
                                 — {{ $reminder->due_date->format('d.m.Y') }}
-                                @if ($reminder->due_date->isPast()) ({{ __("o'tib ketgan") }}) @endif
+                                @if ($reminderOverdue) ({{ __("o'tib ketgan") }}) @endif
                             </span>
+                            @if ($reminder->isDone())
+                                <span class="text-green-700">&#10003; {{ __('bajarildi') }}</span>
+                            @endif
                         </div>
+                        @if (!$reminder->isDone())
+                        @can('reminders.complete')
+                        <form method="POST" action="{{ route('reminders.complete', [$animal, $reminder]) }}">
+                            @csrf
+                            <button type="submit" class="text-green-700 underline text-sm">{{ __('Bajarildi') }}</button>
+                        </form>
+                        @endcan
+                        @endif
                         @can('reminders.delete')
                         <form method="POST" action="{{ route('reminders.destroy', [$animal, $reminder]) }}">
                             @csrf @method('DELETE')

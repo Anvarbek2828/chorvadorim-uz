@@ -3,7 +3,10 @@
     $navFarm = Auth::user()->activeFarm();
     $navMemberships = app(\App\Services\CurrentFarm::class)->activeMemberships(Auth::user());
     // "Ferma" menyusi guruhidagi sahifalar
-    $navFarmActive = request()->routeIs('plans.*', 'staff.*', 'farm-audit.*', 'farm-settings.*');
+    $navFarmActive = request()->routeIs('plans.*', 'staff.*', 'farm-audit.*', 'farm-settings.*', 'farm-payments.*');
+    // Ega va menejer: tarif nomi va tugash sanasi
+    $navPlan = $navFarm?->activePlan();
+    $navPlanEnds = $navFarm?->plan_tugash_sanasi;
 @endphp
 
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -65,8 +68,20 @@
 
                             <x-slot name="content">
                                 @can('plan.view')
+                                    <div class="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                                        {{ __('Tarif') }}: <span class="font-semibold text-gray-700">{{ $navPlan?->nomi }}</span>
+                                        @if ($navPlanEnds && $navPlan?->kod !== \App\Models\Plan::FREE)
+                                            <div>{{ __('Tugash sanasi') }}: {{ $navPlanEnds->format('d.m.Y') }}</div>
+                                        @endif
+                                    </div>
                                     <x-dropdown-link :href="route('plans.index')" class="{{ request()->routeIs('plans.*') ? 'font-semibold' : '' }}">
                                         {{ __('Tariflar') }}
+                                    </x-dropdown-link>
+                                @endcan
+
+                                @can('payments.view')
+                                    <x-dropdown-link :href="route('farm-payments.index')" class="{{ request()->routeIs('farm-payments.*') ? 'font-semibold' : '' }}">
+                                        {{ __("To'lovlar tarixi") }}
                                     </x-dropdown-link>
                                 @endcan
 
@@ -282,8 +297,17 @@
                 <div class="px-4 pt-2 text-xs text-gray-500">{{ __('Ferma') }}</div>
 
                 @can('plan.view')
+                    <div class="px-4 text-xs text-gray-500">
+                        {{ __('Tarif') }}: {{ $navPlan?->nomi }}@if ($navPlanEnds && $navPlan?->kod !== \App\Models\Plan::FREE), {{ __('Tugash sanasi') }}: {{ $navPlanEnds->format('d.m.Y') }}@endif
+                    </div>
                     <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.*')">
                         {{ __('Tariflar') }}
+                    </x-responsive-nav-link>
+                @endcan
+
+                @can('payments.view')
+                    <x-responsive-nav-link :href="route('farm-payments.index')" :active="request()->routeIs('farm-payments.*')">
+                        {{ __("To'lovlar tarixi") }}
                     </x-responsive-nav-link>
                 @endcan
 
