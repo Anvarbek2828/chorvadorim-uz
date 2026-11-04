@@ -12,6 +12,9 @@ class AdminAuditLog extends Model
     public const ACTION_USER_MADE_ADMIN = 'user.made_admin';
     public const ACTION_PLAN_UPDATED = 'plan.updated';
     public const ACTION_USER_ANIMALS_IMPORTED = 'user.animals_imported';
+    public const ACTION_SUBSCRIPTION_EXTENDED = 'subscription.extended';
+    public const ACTION_SUBSCRIPTION_BONUS = 'subscription.bonus';
+    public const ACTION_PAYMENT_CANCELLED = 'subscription.payment_cancelled';
 
     // Jadvalda faqat created_at bor
     public const UPDATED_AT = null;

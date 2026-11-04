@@ -78,17 +78,18 @@ class Farm extends Model
         return $this->belongsTo(Plan::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(FarmPayment::class);
+    }
+
     /**
-     * Amaldagi tarif: tarif belgilanmagan yoki muddati o'tgan bo'lsa — bepul tarif.
-     * Tugash sanasi kuni oxirigacha amal qiladi.
+     * Amaldagi tarif: tarif belgilanmagan bo'lsa — bepul tarif. Muddati o'tgan pullik tarifning limitlari
+     * saqlanadi: imtiyoz kunlarida hammasi ishlaydi, keyin yozishni faqat o'qish rejimi yopadi (SubscriptionService).
      */
     public function activePlan(): Plan
     {
-        if (!$this->plan || $this->isPlanExpired()) {
-            return Plan::free();
-        }
-
-        return $this->plan;
+        return $this->plan ?? Plan::free();
     }
 
     public function isPlanExpired(): bool

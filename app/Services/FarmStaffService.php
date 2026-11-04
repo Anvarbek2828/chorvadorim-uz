@@ -40,7 +40,8 @@ class FarmStaffService
     }
 
     /**
-     * Tarif sozlamasi o'zgarganda: shu tarifda (yoki muddati o'tib bepul tarifga tushgan) xodimli barcha fermalar tekshiriladi.
+     * Tarif sozlamasi o'zgarganda: shu tarifdagi xodimli barcha fermalar tekshiriladi. Muddati o'tgan fermalarga
+     * tegilmaydi: ularda xodimlar to'xtatilmaydi (imtiyoz yoki faqat o'qish rejimi).
      * Limit $plan dan olinadi: Plan::free() so'rov davomida keshlanadi va eski qiymatni qaytarishi mumkin.
      */
     public function enforceLimitForPlan(Plan $plan): int
@@ -51,7 +52,7 @@ class FarmStaffService
             ->whereHas('memberships', fn ($q) => $q->where('role', '!=', FarmUser::ROLE_OWNER)->where('status', FarmUser::STATUS_ACTIVE))
             ->orderBy('id')
             ->each(function (Farm $farm) use ($plan, &$count) {
-                if ((int) $farm->activePlan()->id === (int) $plan->id) {
+                if ((int) $farm->activePlan()->id === (int) $plan->id && !$farm->isPlanExpired()) {
                     $count += $this->enforceLimit($farm, $plan);
                 }
             });

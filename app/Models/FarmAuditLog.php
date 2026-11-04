@@ -28,6 +28,11 @@ class FarmAuditLog extends Model
     public const ACTION_STAFF_REMOVED = 'staff.removed';
     public const ACTION_STAFF_PASSWORD_RESET = 'staff.password_reset';
     public const ACTION_FARM_RENAMED = 'farm.renamed';
+    public const ACTION_REMINDER_COMPLETED = 'reminder.completed';
+    public const ACTION_SUBSCRIPTION_EXTENDED = 'subscription.extended';
+    public const ACTION_SUBSCRIPTION_BONUS = 'subscription.bonus';
+    public const ACTION_PAYMENT_CANCELLED = 'subscription.payment_cancelled';
+    public const ACTION_READ_ONLY_STARTED = 'subscription.read_only';
 
     public const ACTIONS = [
         self::ACTION_ANIMAL_CREATED,
@@ -49,6 +54,11 @@ class FarmAuditLog extends Model
         self::ACTION_STAFF_REMOVED,
         self::ACTION_STAFF_PASSWORD_RESET,
         self::ACTION_FARM_RENAMED,
+        self::ACTION_REMINDER_COMPLETED,
+        self::ACTION_SUBSCRIPTION_EXTENDED,
+        self::ACTION_SUBSCRIPTION_BONUS,
+        self::ACTION_PAYMENT_CANCELLED,
+        self::ACTION_READ_ONLY_STARTED,
     ];
 
     // Jadvalda faqat created_at bor

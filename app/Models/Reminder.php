@@ -24,6 +24,8 @@ class Reminder extends Model
 
         'sent_at' => 'datetime',
 
+        'bajarilgan_at' => 'datetime',
+
     ];
 
 
@@ -36,5 +38,25 @@ class Reminder extends Model
 
     }
 
-}
+    public function isDone(): bool
+    {
+        return $this->bajarilgan_at !== null;
+    }
 
+    /**
+     * "Bajarildi" deb belgilaydi. Shartli UPDATE: ikki marta bosilsa (web yoki bot) faqat birinchisi true qaytaradi.
+     */
+    public function markDone(): bool
+    {
+        $now = now();
+        $updated = static::whereKey($this->id)->whereNull('bajarilgan_at')->update(['bajarilgan_at' => $now]) === 1;
+
+        if ($updated) {
+            $this->bajarilgan_at = $now;
+            $this->syncOriginalAttribute('bajarilgan_at');
+        }
+
+        return $updated;
+    }
+
+}

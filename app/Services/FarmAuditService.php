@@ -19,6 +19,14 @@ class FarmAuditService
     }
 
     /**
+     * Kirgan foydalanuvchisiz kontekstdagi amal (masalan, Telegram bot tugmasi): bajaruvchi aniq beriladi.
+     */
+    public function logAs(int $userId, Farm|int $farm, string $action, string $objectType, ?int $objectId, array $old = [], array $new = []): ?FarmAuditLog
+    {
+        return $this->write($farm, $userId, $action, $objectType, $objectId, $old, $new);
+    }
+
+    /**
      * Tizim amali (masalan, tarif pasayganda xodimni to'xtatish): user_id bo'sh qoladi.
      */
     public function logSystem(Farm|int $farm, string $action, string $objectType, ?int $objectId, array $old = [], array $new = []): ?FarmAuditLog

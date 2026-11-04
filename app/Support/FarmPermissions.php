@@ -31,6 +31,7 @@ final class FarmPermissions
         'staff.manage' => ['owner'],
         'farm.settings' => ['owner'],
         'plan.view' => ['owner', 'manager'],
+        'payments.view' => ['owner'],
         'audit.view' => ['owner', 'manager'],
     ];
 
