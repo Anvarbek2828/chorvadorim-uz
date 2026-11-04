@@ -80,6 +80,26 @@ class ReminderController extends Controller
 
 
 
+    /**
+     * "Bajarildi" deb belgilash. Faqat o'qish rejimida ham ochiq. Ikkinchi marta bosilsa hech narsa o'zgarmaydi.
+     */
+    public function complete(Animal $animal, Reminder $reminder)
+    {
+        $this->checkOwnership($animal);
+
+        if ((int) $reminder->animal_id !== (int) $animal->id) {
+            abort(404);
+        }
+
+        if ($reminder->markDone()) {
+            app(FarmAuditService::class)->log($animal->farm_id, FarmAuditLog::ACTION_REMINDER_COMPLETED, 'reminder', $reminder->id, [], $this->auditState($animal, $reminder));
+        }
+
+        return back()->with('success', __('Eslatma bajarildi deb belgilandi.'));
+    }
+
+
+
     private function auditState(Animal $animal, Reminder $reminder): array
 
     {

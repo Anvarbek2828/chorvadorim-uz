@@ -6,11 +6,9 @@ namespace App\Console\Commands;
 
 
 
-use App\Models\Reminder;
+use App\Services\ReminderNotifier;
 
 use Illuminate\Console\Command;
-
-use Illuminate\Support\Facades\Http;
 
 
 
@@ -20,70 +18,24 @@ class SendReminders extends Command
 
     protected $signature = 'reminders:send';
 
+
+
     protected $description = "Muddati kelgan eslatmalarni Telegram orqali fermerlarga yuboradi";
 
 
 
-    public function handle()
+    /**
+     * Qo'lda ishga tushirish. Odatda eslatmalar kunlik ish (DailySubscriptionRunner) orqali yuboriladi.
+     */
+    public function handle(ReminderNotifier $notifier)
 
     {
 
-        $reminders = Reminder::whereNull('sent_at')
-
-            ->whereDate('due_date', '<=', now()->toDateString())
-
-            ->with(['animal.farm.owner', 'animal.user'])
-
-            ->get();
+        $result = $notifier->run();
 
 
 
-        $token = config('services.telegram.bot_token');
-
-        $sentCount = 0;
-
-
-
-        foreach ($reminders as $reminder) {
-
-            // Eslatma ferma egasiga yuboriladi (arxivdagi hayvonniki o'tkazib yuboriladi)
-            $user = $reminder->animal?->farm?->owner ?? $reminder->animal?->user;
-
-
-
-            if (!$user || !$user->telegram_chat_id) {
-
-                continue;
-
-            }
-
-
-
-            $bell = "\u{1F514}";
-
-            $text = "{$bell} ESLATMA\n\n\"{$reminder->animal->name}\" - {$reminder->title}\nSana: " . $reminder->due_date->format('d.m.Y');
-
-
-
-            Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
-
-                'chat_id' => $user->telegram_chat_id,
-
-                'text' => $text,
-
-            ]);
-
-
-
-            $reminder->update(['sent_at' => now()]);
-
-            $sentCount++;
-
-        }
-
-
-
-        $this->info("{$sentCount} ta eslatma yuborildi.");
+        $this->info("{$result['eslatmalar']} ta eslatma yuborildi.");
 
 
 
@@ -92,4 +44,3 @@ class SendReminders extends Command
     }
 
 }
-

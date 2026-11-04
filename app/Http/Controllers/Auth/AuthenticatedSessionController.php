@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\SetLocale;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,13 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // Kirishdan oldin tanlangan til saqlanadi: bot xabarlari shu tilda yuboriladi
+        $locale = $request->session()->get('locale');
+
+        if (in_array($locale, SetLocale::LOCALES, true) && $request->user()->locale !== $locale) {
+            $request->user()->forceFill(['locale' => $locale])->save();
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

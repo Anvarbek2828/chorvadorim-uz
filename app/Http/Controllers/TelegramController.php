@@ -12,13 +12,25 @@ use App\Models\BankAnimalWatcher;
 
 use App\Models\Farm;
 
+use App\Models\FarmAuditLog;
+
+use App\Models\FarmUser;
+
+use App\Models\Reminder;
+
 use App\Models\TelegramLinkCode;
 
 use App\Models\User;
 
-use Illuminate\Http\Request;
+use App\Services\FarmAuditService;
 
-use Illuminate\Support\Facades\Http;
+use App\Services\SubscriptionService;
+
+use App\Services\TelegramService;
+
+use App\Support\FarmPermissions;
+
+use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -35,6 +47,12 @@ class TelegramController extends Controller
     private const LINK_CODE_DECAY_SECONDS = 15 * 60;
 
     private const WATCH_REQUEST_DECAY_SECONDS = 60 * 60;
+
+    public function __construct(
+        private TelegramService $telegram,
+        private SubscriptionService $subscriptions,
+    ) {
+    }
 
     public function webhook(Request $request)
 
@@ -366,6 +384,11 @@ class TelegramController extends Controller
         $data = (string) ($callback['data'] ?? '');
         $message = $callback['message'] ?? null;
 
+        if (preg_match('/^reminder:done:(\d+)$/', $data, $matches)) {
+            $this->handleReminderDone($callbackId, $fromId, (int) $matches[1], $message);
+            return;
+        }
+
         if (!preg_match('/^watch:(approve|reject|revoke):(\d+)$/', $data, $matches)) {
             $this->answerCallback($callbackId);
             return;
@@ -383,6 +406,11 @@ class TelegramController extends Controller
         if (!$owner || (string) $owner->telegram_chat_id !== $fromId || $watcher->status !== $expectedStatus) {
             $this->answerCallback($callbackId, $this->trilingualLabel("Bu so'rov endi amal qilmaydi."));
             $this->removeButtons($message);
+            return;
+        }
+
+        // Yangi kuzatuvchiga ruxsat berish — yozish amali. Rad etish va bekor qilish (xavfsizlik) faqat o'qish rejimida ham ochiq
+        if ($action === 'approve' && !$this->ensureWritable($animal->farm, $owner, $fromId, $callbackId)) {
             return;
         }
 
@@ -425,20 +453,69 @@ class TelegramController extends Controller
     }
 
     /**
-     * Bot foydalanuvchining tilini bilmaydi, shuning uchun xabar uch tilda yuboriladi.
+     * So'rovchining tili noma'lum (bog'lanmagan bo'lishi mumkin), shuning uchun xabar uch tilda yuboriladi.
      */
     private function trilingual(string $key, array $replace = []): string
     {
-        return collect(['uz', 'uz_cyrl', 'ru'])
-            ->map(fn ($locale) => __($key, $replace, $locale))
-            ->implode("\n\n");
+        return $this->telegram->trilingual($key, $replace);
     }
 
     private function trilingualLabel(string $key): string
     {
-        return collect(['uz', 'uz_cyrl', 'ru'])
-            ->map(fn ($locale) => __($key, [], $locale))
-            ->implode(' / ');
+        return $this->telegram->trilingualLabel($key);
+    }
+
+    /**
+     * Botdagi har bir yozish amali shu markaziy tekshiruvdan o'tadi: ferma faqat o'qish rejimida bo'lsa,
+     * foydalanuvchiga uning tilida xabar yuboriladi va amal bajarilmaydi. Ko'rish buyruqlari tekshirilmaydi.
+     */
+    private function ensureWritable(?Farm $farm, ?User $user, string $chatId, ?string $callbackId = null): bool
+    {
+        if (!$farm || !$this->subscriptions->isReadOnly($farm)) {
+            return true;
+        }
+
+        if ($callbackId !== null) {
+            $this->answerCallback($callbackId);
+        }
+
+        $this->sendMessage($chatId, $this->telegram->textFor($user, "Ferma faqat o'qish rejimida: yangi yozuv qo'shish va o'zgartirish vaqtincha yopiq."));
+
+        return false;
+    }
+
+    /**
+     * Eslatma xabaridagi "Bajarildi" tugmasi. Foydalanuvchi shu fermada faol va huquqi bo'lishi kerak.
+     * Faqat o'qish rejimida ham ishlaydi; ikkinchi bosish hech narsani o'zgartirmaydi.
+     */
+    private function handleReminderDone(string $callbackId, string $fromId, int $reminderId, ?array $message)
+    {
+        $user = $fromId !== '' ? User::where('telegram_chat_id', $fromId)->first() : null;
+        // Arxivdagi hayvonning eslatmasi — animal null
+        $reminder = Reminder::with('animal')->find($reminderId);
+        $animal = $reminder?->animal;
+
+        $role = $user && $animal
+            ? FarmUser::where('farm_id', $animal->farm_id)->where('user_id', $user->id)->where('status', FarmUser::STATUS_ACTIVE)->value('role')
+            : null;
+
+        if (!FarmPermissions::allows($role, 'reminders.complete')) {
+            $this->answerCallback($callbackId, $this->telegram->labelFor($user, "Bu amal uchun huquqingiz yo'q."));
+            return;
+        }
+
+        if ($reminder->markDone()) {
+            app(FarmAuditService::class)->logAs($user->id, $animal->farm_id, FarmAuditLog::ACTION_REMINDER_COMPLETED, 'reminder', $reminder->id, [], [
+                'hayvon' => $animal->name,
+                'eslatma' => $reminder->title,
+                'sana' => $reminder->due_date,
+            ]);
+            $this->answerCallback($callbackId, $this->telegram->labelFor($user, 'Eslatma bajarildi deb belgilandi.'));
+        } else {
+            $this->answerCallback($callbackId, $this->telegram->labelFor($user, 'Bu eslatma allaqachon bajarilgan.'));
+        }
+
+        $this->removeButtons($message);
     }
 
 
@@ -731,9 +808,7 @@ class TelegramController extends Controller
 
     private function telegramRequest(string $method, array $params)
     {
-        $token = config('services.telegram.bot_token');
-
-        Http::post("https://api.telegram.org/bot{$token}/{$method}", $params);
+        $this->telegram->request($method, $params);
     }
 
 }

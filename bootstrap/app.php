@@ -30,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureUserIsNotBlocked::class,
             \App\Http\Middleware\TrackLastActivity::class,
             \App\Http\Middleware\EnsurePasswordChanged::class,
+            \App\Http\Middleware\EnsureFarmWritable::class,
+            \App\Http\Middleware\RunDailyTasks::class,
 
         ]);
 

@@ -74,6 +74,13 @@ return [
 
     ],
 
+    // Obuna kunlik ishi: zaxira URL tokeni (/cron/obuna/{token}); bo'sh bo'lsa URL 404.
+    // auto_run=false — har so'rovdan keyin avtomatik ishga tushmaydi (testlar uchun)
+    'obuna' => [
+        'cron_token' => env('OBUNA_CRON_TOKEN'),
+        'auto_run' => env('OBUNA_AUTO_RUN', true),
+    ],
+
 
 
     'slack' => [

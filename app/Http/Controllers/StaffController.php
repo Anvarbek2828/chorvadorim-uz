@@ -11,6 +11,7 @@ use App\Services\AiUsageService;
 use App\Services\CurrentFarm;
 use App\Services\FarmAuditService;
 use App\Services\FarmStaffService;
+use App\Services\SubscriptionService;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -166,12 +167,17 @@ class StaffController extends Controller
         return redirect()->route('staff.index')->with('success', __(':name roli o\'zgartirildi.', ['name' => $member->user?->name]));
     }
 
-    public function updateStatus(FarmUser $member)
+    public function updateStatus(FarmUser $member, SubscriptionService $subscriptions)
     {
         $farm = $this->currentFarm();
         $this->ensureManageable($farm, $member);
 
         $activate = $member->status !== FarmUser::STATUS_ACTIVE;
+
+        // Faqat o'qish rejimida to'xtatish mumkin (xavfsizlik), qayta faollashtirish — yo'q
+        if ($activate && $subscriptions->isReadOnly($farm)) {
+            return redirect()->route('staff.index')->withErrors(['staff' => __("Ferma faqat o'qish rejimida: xodimni qayta faollashtirish to'lovdan keyin mumkin.")]);
+        }
 
         $error = DB::transaction(function () use ($farm, $member, $activate) {
             $farm = Farm::whereKey($farm->id)->lockForUpdate()->first();

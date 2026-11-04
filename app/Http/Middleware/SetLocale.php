@@ -18,6 +18,9 @@ class SetLocale
 
 {
 
+    // Sessiya va users.locale dagi til kodlari (bot uch tilli matnni shu tartibda yozadi)
+    public const LOCALES = ['uz', 'uz_cyrl', 'ru'];
+
     public function handle(Request $request, Closure $next)
 
     {
@@ -26,7 +29,7 @@ class SetLocale
 
 
 
-        if (in_array($locale, ['uz', 'ru', 'uz_cyrl'])) {
+        if (in_array($locale, self::LOCALES)) {
 
             App::setLocale($locale);
 
@@ -39,4 +42,3 @@ class SetLocale
     }
 
 }
-
