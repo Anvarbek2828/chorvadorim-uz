@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Admin: ferma sahifasi — obuna bloki (To'landi, +1 oy bonus, Bekor qilish), to'lovlar tarixi, a'zolar (faqat ko'rish).
+ * Admin: ferma sahifasi — obuna bloki (To'landi, +1 oy bonus, to'lovsiz tarif almashtirish, Bekor qilish), to'lovlar tarixi, a'zolar (faqat ko'rish).
  */
 class FarmController extends Controller
 {
@@ -36,7 +36,35 @@ class FarmController extends Controller
                 ->orderBy('id')
                 ->get(),
             'paidPlans' => $this->paidPlans(),
+            'allPlans' => Plan::orderBy('max_hayvon')->get(),
         ]);
+    }
+
+    /**
+     * "Tarifni almashtirish (to'lovsiz)": tarif (Free ham), tugash sanasi (bo'sh — muddatsiz), sabab majburiy.
+     */
+    public function changePlan(Request $request, Farm $farm, SubscriptionService $subscriptions)
+    {
+        $validated = $request->validate([
+            'plan_id' => ['required', 'integer', 'exists:plans,id'],
+            'plan_tugash_sanasi' => ['nullable', 'date_format:Y-m-d'],
+            'sabab' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $suspended = $subscriptions->changePlan(
+            $farm,
+            Plan::findOrFail($validated['plan_id']),
+            $validated['plan_tugash_sanasi'] ?? null,
+            trim($validated['sabab']),
+        );
+
+        $message = __('Tarif almashtirildi');
+
+        if ($suspended > 0) {
+            $message .= '. ' . __("Tarif limitidan ortiq :count ta xodim to'xtatildi.", ['count' => $suspended]);
+        }
+
+        return redirect()->route('admin.farms.show', $farm)->with('success', $message);
     }
 
     /**

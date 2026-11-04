@@ -216,6 +216,32 @@ class SubscriptionService
     }
 
     /**
+     * Admin: tarifni to'lov yozuvisiz almashtirish (farm_payments ga yozilmaydi). Free tanlansa tugash sanasi NULL,
+     * pullik tarifda bo'sh sana — muddatsiz. Ikkala jurnalga sabab bilan yoziladi. Qaytaradi: to'xtatilgan xodimlar soni.
+     */
+    public function changePlan(Farm $farm, Plan $plan, ?string $endDate, string $reason): int
+    {
+        $endDate = $plan->kod === Plan::FREE ? null : $endDate;
+        $before = null;
+
+        DB::transaction(function () use (&$farm, $plan, $endDate, &$before) {
+            $farm = Farm::with('plan')->lockForUpdate()->findOrFail($farm->id);
+            $before = $this->planState($farm);
+
+            $this->applyPlan($farm, $plan->id, $endDate);
+        });
+
+        $farm->refresh()->load('plan');
+        $after = $this->planState($farm) + ['sabab' => $reason];
+
+        $this->adminAudit->log(AdminAuditLog::ACTION_SUBSCRIPTION_PLAN_CHANGED, 'farm', $farm->id, $before, $after, null, null, $farm->id);
+        $this->farmAudit->log($farm, FarmAuditLog::ACTION_PLAN_CHANGED, 'subscription', null, $before, $after);
+
+        // Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqchalari to'xtatiladi
+        return $this->staff->enforceLimit($farm, $plan);
+    }
+
+    /**
      * Pullik tarifdagi fermalar, holat bo'yicha filtr (admin "To'lovlar" bo'limi). 'hammasi' — barcha pullik fermalar.
      */
     public function farmsQuery(string $filter): Builder
@@ -247,7 +273,7 @@ class SubscriptionService
     }
 
     /**
-     * Ferma va egasining users dagi eski ustunlari bir xil yangilanadi (Admin\UserController::updatePlan bilan bir xil).
+     * Ferma va egasining users dagi eski ustunlari bir xil yangilanadi: admin statistikasi ularga tayanadi.
      */
     private function applyPlan(Farm $farm, ?int $planId, ?string $endDate): void
     {

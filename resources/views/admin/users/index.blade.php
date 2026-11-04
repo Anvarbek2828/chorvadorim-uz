@@ -45,6 +45,7 @@
                                         // Asosiy a'zolik: o'z fermasi (ega), bo'lmasa birinchi a'zoligi (xodim)
                                         $membership = $user->farmMemberships->firstWhere('role', \App\Models\FarmUser::ROLE_OWNER) ?? $user->farmMemberships->first();
                                         $otherFarms = $user->farmMemberships->count() - ($membership ? 1 : 0);
+                                        $ownedFarm = $user->farmMemberships->firstWhere('role', \App\Models\FarmUser::ROLE_OWNER)?->farm;
                                     @endphp
                                     <tr>
                                         <td>
@@ -101,26 +102,10 @@
                                             @endif
                                         </td>
                                         <td class="adm-wrap">
-                                            <details>
-                                                <summary class="text-sm cursor-pointer">{{ __("Tarifni o'zgartirish") }}</summary>
-                                                <form method="POST" action="{{ route('admin.users.plan', $user) }}" class="mt-2 space-y-2">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <div>
-                                                        <label class="block text-xs text-gray-500">{{ __('Tarif') }}</label>
-                                                        <select name="plan_id" class="adm-input">
-                                                            @foreach ($plans as $plan)
-                                                                <option value="{{ $plan->id }}" @selected((int) $plan->id === (int) ($user->plan_id ?? \App\Models\Plan::free()->id))>{{ $plan->nomi }}</option>
-                                                            @endforeach
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label class="block text-xs text-gray-500">{{ __('Tugash sanasi (bo\'sh — muddatsiz)') }}</label>
-                                                        <input type="date" name="plan_tugash_sanasi" value="{{ $user->plan_tugash_sanasi?->toDateString() }}" class="adm-input">
-                                                    </div>
-                                                    <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700 text-sm">{{ __('Saqlash') }}</button>
-                                                </form>
-                                            </details>
+                                            {{-- Tarif ferma sahifasidagi Obuna blokida o'zgartiriladi --}}
+                                            @if ($ownedFarm)
+                                                <a href="{{ route('admin.farms.show', $ownedFarm) }}" class="block text-sm underline">{{ __('Obuna') }} →</a>
+                                            @endif
 
                                             <a href="{{ route('admin.users.import', $user) }}" class="block mt-2 text-sm underline">{{ __('Hayvonlarni yuklash') }}</a>
 

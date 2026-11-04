@@ -505,5 +505,9 @@
     "bajarildi": "бажарилди",
     "Eslatma bajarildi": "Эслатма бажарилди",
     "To'lov qilinmagani sababli faoliyat cheklandi": "Тўлов қилинмагани сабабли фаолият чекланди",
-    "Tarifingiz muddati :date kuni tugagan.": "Тарифингиз муддати :date куни тугаган."
+    "Tarifingiz muddati :date kuni tugagan.": "Тарифингиз муддати :date куни тугаган.",
+    "Tarif almashtirildi": "Тариф алмаштирилди",
+    "Tarifni almashtirish (to'lovsiz)": "Тарифни алмаштириш (тўловсиз)",
+    "Bu amal to'lov yozuvisiz tarifni o'zgartiradi. Davom etasizmi?": "Бу амал тўлов ёзувисиз тарифни ўзгартиради. Давом этасизми?",
+    "Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi.": "Янги тарифда ходимлар лимити камроқ бўлса, ортиқча ходимлар (энг охирги қўшилганлар) тўхтатилади."
 }

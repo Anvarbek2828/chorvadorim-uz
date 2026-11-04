@@ -223,16 +223,18 @@ class FarmIsolationTest extends TestCase
         $admin->forceFill(['is_admin' => true])->save();
         $user = User::factory()->create();
         $pro = Plan::where('kod', 'pro')->firstOrFail();
+        $farm = $this->farmOf($user);
 
+        // Tarif ferma sahifasidagi to'lovsiz almashtirish orqali o'zgartiriladi
         $this->actingAs($admin)
-            ->patch(route('admin.users.plan', $user), ['plan_id' => $pro->id, 'plan_tugash_sanasi' => '2027-01-31'])
+            ->post(route('admin.farms.plan', $farm), ['plan_id' => $pro->id, 'plan_tugash_sanasi' => '2027-01-31', 'sabab' => 'Test'])
             ->assertSessionHas('success');
 
-        $farm = $this->farmOf($user);
+        $farm->refresh();
         $this->assertSame($pro->id, (int) $farm->plan_id);
         $this->assertSame('2027-01-31', $farm->plan_tugash_sanasi->toDateString());
         $this->assertSame($pro->id, (int) $user->fresh()->plan_id);
-        $this->assertDatabaseHas('admin_audit_logs', ['farm_id' => $farm->id, 'obyekt_id' => $user->id]);
+        $this->assertDatabaseHas('admin_audit_logs', ['farm_id' => $farm->id, 'obyekt_turi' => 'farm', 'obyekt_id' => $farm->id]);
     }
 
     public function test_telegram_bot_lists_only_current_farm_animals(): void

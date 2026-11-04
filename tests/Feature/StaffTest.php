@@ -395,7 +395,7 @@ class StaffTest extends TestCase
 
         // Pro (5) -> Basic (2): eng oxirgi qo'shilgan to'xtatiladi
         $this->actingAs($admin)
-            ->patch(route('admin.users.plan', $owner), ['plan_id' => Plan::where('kod', 'basic')->value('id')])
+            ->post(route('admin.farms.plan', $farm), ['plan_id' => Plan::where('kod', 'basic')->value('id'), 'sabab' => 'Test'])
             ->assertSessionHas('success');
 
         $status = fn (User $user) => FarmUser::where('farm_id', $farm->id)->where('user_id', $user->id)->value('status');

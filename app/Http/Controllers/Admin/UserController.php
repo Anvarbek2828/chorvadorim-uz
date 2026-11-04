@@ -5,15 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AdminAuditLog;
 use App\Models\AiUsageLog;
-use App\Models\Farm;
 use App\Models\FarmUser;
-use App\Models\Plan;
 use App\Models\User;
 use App\Services\AdminAuditService;
 use App\Services\AiUsageService;
-use App\Services\FarmStaffService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -58,52 +54,8 @@ class UserController extends Controller
         return view('admin.users.index', [
             'users' => $users,
             'search' => $search,
-            'plans' => Plan::orderBy('max_hayvon')->get(),
             'rate' => (float) config('ai.usd_to_som'),
         ]);
-    }
-
-    public function updatePlan(Request $request, User $user, AdminAuditService $audit, FarmStaffService $staff)
-    {
-        $validated = $request->validate([
-            'plan_id' => ['required', 'integer', 'exists:plans,id'],
-            'plan_tugash_sanasi' => ['nullable', 'date'],
-        ]);
-
-        // Tarif fermaga tegishli: foydalanuvchi egasi bo'lgan ferma yangilanadi
-        $farm = $user->ownedFarms()->orderBy('id')->first();
-
-        if (!$farm) {
-            return back()->with('error', __("Bu foydalanuvchining o'z fermasi yo'q."));
-        }
-
-        $farm->load('plan');
-        $old = $this->planState($farm);
-
-        // users dagi eski ustunlar ham bir xil yangilanadi: admin statistikasi ularga tayanadi
-        // va kod orqaga qaytarilsa, oxirgi berilgan tarif yo'qolmaydi
-        DB::transaction(function () use ($farm, $user, $validated) {
-            foreach ([$farm, $user] as $model) {
-                $model->plan_id = (int) $validated['plan_id'];
-                $model->plan_tugash_sanasi = $validated['plan_tugash_sanasi'] ?? null;
-                $model->save();
-            }
-        });
-
-        $farm->load('plan');
-
-        $audit->log(AdminAuditLog::ACTION_USER_PLAN_CHANGED, 'user', $user->id, $old, $this->planState($farm), null, null, $farm->id);
-
-        // Tarif pasaygan bo'lsa, limitdan ortiq xodimlar to'xtatiladi (eng oxirgi qo'shilganlar)
-        $suspended = $staff->enforceLimit($farm);
-
-        $message = __(':name uchun tarif saqlandi.', ['name' => $user->name]);
-
-        if ($suspended > 0) {
-            $message .= ' ' . __("Tarif limitidan ortiq :count ta xodim to'xtatildi.", ['count' => $suspended]);
-        }
-
-        return back()->with('success', $message);
     }
 
     public function toggleBlock(User $user, AdminAuditService $audit)
@@ -134,13 +86,5 @@ class UserController extends Controller
         return back()->with('success', $user->is_blocked
             ? __(':name bloklandi.', ['name' => $user->name])
             : __(':name blokdan chiqarildi.', ['name' => $user->name]));
-    }
-
-    private function planState(Farm $farm): array
-    {
-        return [
-            'plan' => $farm->plan?->kod,
-            'plan_tugash_sanasi' => $farm->plan_tugash_sanasi?->toDateString(),
-        ];
     }
 }

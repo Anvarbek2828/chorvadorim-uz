@@ -28,6 +28,7 @@
         FarmAuditLog::ACTION_SUBSCRIPTION_BONUS => __('Bonus berildi'),
         FarmAuditLog::ACTION_PAYMENT_CANCELLED => __("To'lov bekor qilindi"),
         FarmAuditLog::ACTION_READ_ONLY_STARTED => __("To'lov qilinmagani sababli faoliyat cheklandi"),
+        FarmAuditLog::ACTION_PLAN_CHANGED => __('Tarif almashtirildi'),
     ];
 
     $objectLabels = [

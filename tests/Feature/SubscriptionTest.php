@@ -21,6 +21,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Js;
 use Tests\TestCase;
 
 /**
@@ -366,6 +368,145 @@ class SubscriptionTest extends TestCase
         $unlimited = $this->setPlan($this->farmOf(User::factory()->create()), 'pro', null);
         $this->actingAs($admin)->post(route('admin.farms.bonus', $unlimited), ['sabab' => 'Uzr'])->assertSessionHas('error');
         $this->assertNull($unlimited->fresh()->plan_tugash_sanasi);
+    }
+
+    // ---------------------------------------------------------------- admin: to'lovsiz tarif almashtirish
+
+    public function test_users_list_has_no_old_plan_form_and_links_to_farm_subscription(): void
+    {
+        $admin = $this->admin();
+        $owner = User::factory()->create();
+        $farm = $this->farmOf($owner);
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => Plan::where('kod', 'pro')->value('id'), 'plan_tugash_sanasi' => '2026-12-31', 'sabab' => 'Test']);
+
+        // Eski marshrut va controller metodi yo'q
+        $this->assertFalse(Route::has('admin.users.plan'));
+        $this->assertFalse(method_exists(\App\Http\Controllers\Admin\UserController::class, 'updatePlan'));
+        $this->assertContains($this->actingAs($admin)->patch('/admin/users/' . $owner->id . '/plan', ['plan_id' => Plan::free()->id])->status(), [404, 405]);
+
+        $this->actingAs($admin)->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertDontSee('/admin/users/' . $owner->id . '/plan')
+            ->assertDontSee(__("Tarifni o'zgartirish"))
+            ->assertSee('href="' . route('admin.farms.show', $farm) . '"', false)
+            ->assertSee(__('Obuna') . ' →')
+            // Joriy tarif va tugash sanasi ro'yxatda ko'rinadi
+            ->assertSee('Pro')
+            ->assertSee('31.12.2026');
+
+        $this->assertSame(Plan::where('kod', 'pro')->value('id'), (int) $owner->fresh()->plan_id);
+    }
+
+    public function test_change_plan_without_payment_free_paid_with_date_and_unlimited(): void
+    {
+        $admin = $this->admin();
+        $owner = User::factory()->create();
+        $farm = $this->setPlan($this->farmOf($owner), 'basic', '2026-12-01');
+        $pro = Plan::where('kod', 'pro')->firstOrFail();
+        $free = Plan::free();
+
+        // Ferma sahifasida forma, ogohlantirish va tasdiqlash matni
+        $this->actingAs($admin)->get(route('admin.farms.show', $farm))
+            ->assertOk()
+            ->assertSee(route('admin.farms.plan', $farm))
+            ->assertSee(__("Tarifni almashtirish (to'lovsiz)"))
+            ->assertSee(__("Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi."))
+            ->assertSee(Js::from(__("Bu amal to'lov yozuvisiz tarifni o'zgartiradi. Davom etasizmi?"))->toHtml(), false);
+
+        // Pullik + sana
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => $pro->id, 'plan_tugash_sanasi' => '2027-03-15', 'sabab' => 'Hamkor'])
+            ->assertRedirect(route('admin.farms.show', $farm))
+            ->assertSessionHas('success');
+        $farm->refresh();
+        $this->assertSame($pro->id, $farm->plan_id);
+        $this->assertSame('2027-03-15', $farm->plan_tugash_sanasi->toDateString());
+        $this->assertSame($pro->id, (int) $owner->fresh()->plan_id);
+        $this->assertSame('2027-03-15', $owner->fresh()->plan_tugash_sanasi->toDateString());
+        $this->assertSame(SubscriptionService::STATUS_ACTIVE, $this->farmStatus($farm));
+
+        $adminLog = AdminAuditLog::where('amal', AdminAuditLog::ACTION_SUBSCRIPTION_PLAN_CHANGED)->where('farm_id', $farm->id)->sole();
+        $this->assertSame(['plan' => 'basic', 'plan_tugash_sanasi' => '2026-12-01'], $adminLog->eski_qiymat);
+        $this->assertSame(['plan' => 'pro', 'plan_tugash_sanasi' => '2027-03-15', 'sabab' => 'Hamkor'], $adminLog->yangi_qiymat);
+        $this->assertSame($admin->id, $adminLog->admin_id);
+        $farmLog = FarmAuditLog::where('amal', FarmAuditLog::ACTION_PLAN_CHANGED)->where('farm_id', $farm->id)->sole();
+        $this->assertSame(['plan' => 'basic', 'plan_tugash_sanasi' => '2026-12-01'], $farmLog->eski_qiymat);
+        $this->assertSame(['plan' => 'pro', 'plan_tugash_sanasi' => '2027-03-15', 'sabab' => 'Hamkor'], $farmLog->yangi_qiymat);
+        $this->actingAs($owner)->get(route('farm-audit.index'))->assertOk()->assertSee(__('Tarif almashtirildi'));
+
+        // Pullik + bo'sh sana — muddatsiz
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => $pro->id, 'plan_tugash_sanasi' => '', 'sabab' => 'Doimiy'])
+            ->assertSessionHas('success');
+        $farm->refresh();
+        $this->assertSame($pro->id, $farm->plan_id);
+        $this->assertNull($farm->plan_tugash_sanasi);
+        $this->assertNull($owner->fresh()->plan_tugash_sanasi);
+        $this->assertSame(SubscriptionService::STATUS_UNLIMITED, $this->farmStatus($farm));
+
+        // Free: sana berilsa ham NULL
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => $free->id, 'plan_tugash_sanasi' => '2027-05-01', 'sabab' => "To'lamadi"])
+            ->assertSessionHas('success');
+        $farm->refresh();
+        $this->assertSame($free->id, $farm->plan_id);
+        $this->assertNull($farm->plan_tugash_sanasi);
+        $this->assertSame($free->id, (int) $owner->fresh()->plan_id);
+        $this->assertNull($owner->fresh()->plan_tugash_sanasi);
+        $this->assertSame(SubscriptionService::STATUS_FREE, $this->farmStatus($farm));
+
+        // farm_payments ga yozilmaydi, har bir almashtirish ikkala jurnalda
+        $this->assertSame(0, FarmPayment::count());
+        $this->assertSame(3, AdminAuditLog::where('amal', AdminAuditLog::ACTION_SUBSCRIPTION_PLAN_CHANGED)->where('farm_id', $farm->id)->count());
+        $this->assertSame(3, FarmAuditLog::where('amal', FarmAuditLog::ACTION_PLAN_CHANGED)->where('farm_id', $farm->id)->count());
+    }
+
+    public function test_change_plan_requires_reason_and_admin(): void
+    {
+        $admin = $this->admin();
+        $owner = User::factory()->create();
+        $farm = $this->setPlan($this->farmOf($owner), 'basic', '2026-12-01');
+        $pro = Plan::where('kod', 'pro')->value('id');
+
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => $pro])->assertSessionHasErrors('sabab');
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => $pro, 'sabab' => '   '])->assertSessionHasErrors('sabab');
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['sabab' => 'Test'])->assertSessionHasErrors('plan_id');
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => $pro, 'plan_tugash_sanasi' => 'ertaga', 'sabab' => 'Test'])->assertSessionHasErrors('plan_tugash_sanasi');
+
+        // Admin bo'lmagan foydalanuvchi (ferma egasi ham): admin panel 404 qaytaradi
+        $this->actingAs($owner)->post(route('admin.farms.plan', $farm), ['plan_id' => $pro, 'sabab' => 'Test'])->assertNotFound();
+        $this->actingAs($owner)->get(route('admin.farms.show', $farm))->assertNotFound();
+
+        $farm->refresh();
+        $this->assertSame(Plan::where('kod', 'basic')->value('id'), $farm->plan_id);
+        $this->assertSame('2026-12-01', $farm->plan_tugash_sanasi->toDateString());
+        $this->assertSame(0, AdminAuditLog::where('amal', AdminAuditLog::ACTION_SUBSCRIPTION_PLAN_CHANGED)->count());
+        $this->assertSame(0, FarmAuditLog::where('amal', FarmAuditLog::ACTION_PLAN_CHANGED)->count());
+    }
+
+    public function test_change_plan_to_smaller_plan_suspends_excess_staff(): void
+    {
+        $admin = $this->admin();
+        $owner = User::factory()->create();
+        $farm = $this->setPlan($this->farmOf($owner), 'pro', null);
+        $first = $this->addMember($farm, FarmUser::ROLE_MANAGER);
+        $this->travel(1)->minutes();
+        $second = $this->addMember($farm, FarmUser::ROLE_WORKER);
+        $this->travel(1)->minutes();
+        $third = $this->addMember($farm, FarmUser::ROLE_VIEWER);
+
+        // Pro (5) -> Basic (2): eng oxirgi qo'shilgan to'xtatiladi
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => Plan::where('kod', 'basic')->value('id'), 'sabab' => 'Pasaytirish'])
+            ->assertSessionHas('success', __('Tarif almashtirildi') . '. ' . __("Tarif limitidan ortiq :count ta xodim to'xtatildi.", ['count' => 1]));
+
+        $status = fn (User $user) => FarmUser::where('farm_id', $farm->id)->where('user_id', $user->id)->value('status');
+        $this->assertSame(FarmUser::STATUS_ACTIVE, $status($first));
+        $this->assertSame(FarmUser::STATUS_ACTIVE, $status($second));
+        $this->assertSame(FarmUser::STATUS_SUSPENDED, $status($third));
+        $this->assertDatabaseHas('farm_audit_logs', ['farm_id' => $farm->id, 'user_id' => null, 'amal' => FarmAuditLog::ACTION_STAFF_AUTO_SUSPENDED, 'obyekt_id' => $third->id]);
+
+        // Free (0): qolgan xodimlar ham to'xtatiladi
+        $this->actingAs($admin)->post(route('admin.farms.plan', $farm), ['plan_id' => Plan::free()->id, 'sabab' => 'Free'])->assertSessionHas('success');
+        $this->assertSame(FarmUser::STATUS_SUSPENDED, $status($first));
+        $this->assertSame(FarmUser::STATUS_SUSPENDED, $status($second));
+        $this->assertSame(0, FarmPayment::count());
     }
 
     // ---------------------------------------------------------------- admin: bekor qilish

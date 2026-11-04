@@ -505,5 +505,9 @@
     "bajarildi": "выполнено",
     "Eslatma bajarildi": "Напоминание выполнено",
     "To'lov qilinmagani sababli faoliyat cheklandi": "Работа ограничена из-за отсутствия оплаты",
-    "Tarifingiz muddati :date kuni tugagan.": "Срок вашего тарифа истёк :date."
+    "Tarifingiz muddati :date kuni tugagan.": "Срок вашего тарифа истёк :date.",
+    "Tarif almashtirildi": "Тариф изменён",
+    "Tarifni almashtirish (to'lovsiz)": "Сменить тариф (без оплаты)",
+    "Bu amal to'lov yozuvisiz tarifni o'zgartiradi. Davom etasizmi?": "Это действие изменит тариф без записи об оплате. Продолжить?",
+    "Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi.": "Если в новом тарифе лимит сотрудников меньше, лишние сотрудники (добавленные последними) будут приостановлены."
 }

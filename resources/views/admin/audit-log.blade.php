@@ -11,6 +11,7 @@
         AdminAuditLog::ACTION_SUBSCRIPTION_EXTENDED => __('Obuna uzaytirildi'),
         AdminAuditLog::ACTION_SUBSCRIPTION_BONUS => __('Bonus berildi'),
         AdminAuditLog::ACTION_PAYMENT_CANCELLED => __("To'lov bekor qilindi"),
+        AdminAuditLog::ACTION_SUBSCRIPTION_PLAN_CHANGED => __('Tarif almashtirildi'),
     ];
 
     $fieldLabels = [

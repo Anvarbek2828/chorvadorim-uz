@@ -33,6 +33,7 @@ class FarmAuditLog extends Model
     public const ACTION_SUBSCRIPTION_BONUS = 'subscription.bonus';
     public const ACTION_PAYMENT_CANCELLED = 'subscription.payment_cancelled';
     public const ACTION_READ_ONLY_STARTED = 'subscription.read_only';
+    public const ACTION_PLAN_CHANGED = 'subscription.plan_changed';
 
     public const ACTIONS = [
         self::ACTION_ANIMAL_CREATED,
@@ -59,6 +60,7 @@ class FarmAuditLog extends Model
         self::ACTION_SUBSCRIPTION_BONUS,
         self::ACTION_PAYMENT_CANCELLED,
         self::ACTION_READ_ONLY_STARTED,
+        self::ACTION_PLAN_CHANGED,
     ];
 
     // Jadvalda faqat created_at bor

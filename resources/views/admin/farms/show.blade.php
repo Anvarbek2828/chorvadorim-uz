@@ -124,6 +124,32 @@
                             <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700 text-sm">{{ __('+1 oy bonus') }}</button>
                         @endif
                     </form>
+
+                    <form method="POST" action="{{ route('admin.farms.plan', $farm) }}" class="space-y-2 border rounded-lg p-4" id="obn-change-plan-form"
+                          onsubmit="return confirm(@js(__("Bu amal to'lov yozuvisiz tarifni o'zgartiradi. Davom etasizmi?")))">
+                        @csrf
+                        <div class="font-semibold">{{ __("Tarifni almashtirish (to'lovsiz)") }}</div>
+                        <div>
+                            <label class="block text-xs text-gray-500">{{ __('Tarif') }}</label>
+                            <select name="plan_id" class="adm-input" data-obn-change-plan required>
+                                @foreach ($allPlans as $plan)
+                                    <option value="{{ $plan->id }}" data-free="{{ $plan->kod === \App\Models\Plan::FREE ? 1 : 0 }}"
+                                            @selected((int) old('plan_id', $farm->activePlan()->id) === (int) $plan->id)>{{ $plan->nomi }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500">{{ __("Tugash sanasi (bo'sh — muddatsiz)") }}</label>
+                            <input type="date" name="plan_tugash_sanasi" class="adm-input" data-obn-change-date
+                                   value="{{ old('plan_tugash_sanasi', $farm->plan_tugash_sanasi?->toDateString()) }}">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500">{{ __('Sabab') }}</label>
+                            <textarea name="sabab" rows="2" required class="adm-input w-full"></textarea>
+                        </div>
+                        <p class="text-xs text-gray-500">{{ __("Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi.") }}</p>
+                        <button type="submit" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-700 text-sm">{{ __('Saqlash') }}</button>
+                    </form>
                 </div>
             </div>
 
@@ -240,6 +266,19 @@
             }
             plan.addEventListener('change', update);
             months.addEventListener('change', update);
+        })();
+
+        // To'lovsiz almashtirish: Free tanlansa tugash sanasi e'tiborga olinmaydi
+        (function () {
+            var form = document.getElementById('obn-change-plan-form');
+            if (!form) return;
+            var plan = form.querySelector('[data-obn-change-plan]');
+            var date = form.querySelector('[data-obn-change-date]');
+            function update() {
+                date.disabled = plan.options[plan.selectedIndex].getAttribute('data-free') === '1';
+            }
+            plan.addEventListener('change', update);
+            update();
         })();
     </script>
 </x-app-layout>

@@ -15,6 +15,8 @@ class AdminAuditLog extends Model
     public const ACTION_SUBSCRIPTION_EXTENDED = 'subscription.extended';
     public const ACTION_SUBSCRIPTION_BONUS = 'subscription.bonus';
     public const ACTION_PAYMENT_CANCELLED = 'subscription.payment_cancelled';
+    // Admin tarifni to'lov yozuvisiz almashtirdi
+    public const ACTION_SUBSCRIPTION_PLAN_CHANGED = 'subscription.plan_changed';
 
     // Jadvalda faqat created_at bor
     public const UPDATED_AT = null;

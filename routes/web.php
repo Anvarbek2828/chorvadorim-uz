@@ -129,7 +129,6 @@ Route::middleware('auth')->group(function () {
 Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
-    Route::patch('/users/{user}/plan', [App\Http\Controllers\Admin\UserController::class, 'updatePlan'])->name('users.plan');
     Route::patch('/users/{user}/block', [App\Http\Controllers\Admin\UserController::class, 'toggleBlock'])->name('users.block');
     // Admin foydalanuvchi nomidan hayvonlarni fayldan yuklaydi (o'sha ikki bosqichli import)
     Route::get('/users/{user}/import', [AnimalImportController::class, 'create'])->whereNumber('user')->name('users.import');
@@ -147,6 +146,7 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/fermalar/{farm}', [App\Http\Controllers\Admin\FarmController::class, 'show'])->whereNumber('farm')->name('farms.show');
     Route::post('/fermalar/{farm}/tolov', [App\Http\Controllers\Admin\FarmController::class, 'storePayment'])->whereNumber('farm')->name('farms.payment');
     Route::post('/fermalar/{farm}/bonus', [App\Http\Controllers\Admin\FarmController::class, 'storeBonus'])->whereNumber('farm')->name('farms.bonus');
+    Route::post('/fermalar/{farm}/tarif', [App\Http\Controllers\Admin\FarmController::class, 'changePlan'])->whereNumber('farm')->name('farms.plan');
 });
 
 
