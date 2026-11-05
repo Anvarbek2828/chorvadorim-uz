@@ -18,16 +18,20 @@
     html.dark .obn-banner-qizil, html.dark .obn-banner-qizil * { background: #991b1b; color: #fff !important; }
     html.dark .obn-banner-kulrang, html.dark .obn-banner-kulrang * { background: #334155; color: #e2e8f0 !important; }
     html.dark .obn-flash, html.dark .obn-flash * { background: #3f1d2b; color: #fca5a5 !important; }
+    .obn-banner-contact { margin-top: .25rem; font-weight: 500; }
+    .obn-banner-contact a { display: inline-block; padding: .25rem .125rem; color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
 </style>
 
 @if ($bannerStatus === \App\Services\SubscriptionService::STATUS_GRACE && $bannerManages)
     <div class="obn-banner obn-banner-sariq" role="alert">
         {{ __("Obunangiz muddati tugadi. Iltimos, to'lovni amalga oshiring. Agar :days kun ichida to'lov qilinmasa, saytdagi faoliyatingizni to'lov qilinguncha cheklashga majbur bo'lamiz.", ['days' => $bannerSubscriptions->daysUntilReadOnly($bannerFarm)]) }}
+        @include('layouts.partials.banner-contact')
     </div>
 @elseif ($bannerStatus === \App\Services\SubscriptionService::STATUS_READ_ONLY)
     @if ($bannerManages)
         <div class="obn-banner obn-banner-qizil" role="alert">
             {{ __("To'lov qilinmagani sababli saytdagi faoliyatingiz cheklandi. Ma'lumotlaringizni ko'rishingiz mumkin, lekin yangi ma'lumot kiritib bo'lmaydi. To'lov qilinishi bilan hammasi darhol tiklanadi.") }}
+            @include('layouts.partials.banner-contact')
         </div>
     @else
         <div class="obn-banner obn-banner-kulrang" role="status">

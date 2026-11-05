@@ -837,6 +837,63 @@ class SubscriptionTest extends TestCase
         }
     }
 
+    // Banner HTML'i (banner boshidan sahifa kontentigacha): footerdagi t.me havolasi hisobga olinmasin
+    private function bannerHtml(User $user, string $class, string $locale = 'uz'): string
+    {
+        $html = $this->actingAs($user)->withSession(['locale' => $locale])->get(route('dashboard'))->assertOk()->getContent();
+        $marker = 'class="obn-banner ' . $class . '"';
+        $this->assertStringContainsString($marker, $html);
+
+        return \Illuminate\Support\Str::between($html, $marker, '<main');
+    }
+
+    public function test_yellow_and_red_banners_have_contact_links_grey_does_not(): void
+    {
+        $tel = 'href="tel:+998972362828"';
+        $telegram = 'href="https://t.me/smartshop571" target="_blank" rel="noopener"';
+
+        $owner = User::factory()->create();
+        $farm = $this->farmEndingIn(-1, $owner);
+        $manager = $this->addMember($farm, FarmUser::ROLE_MANAGER);
+        $worker = $this->addMember($farm, FarmUser::ROLE_WORKER);
+        $viewer = $this->addMember($farm, FarmUser::ROLE_VIEWER);
+
+        // Imtiyoz — sariq bannerda aloqa qatori, 3 tilda
+        $labels = ['uz' => "Bog&#039;lanish:", 'uz_cyrl' => 'Боғланиш:', 'ru' => 'Связь:'];
+        foreach ([$owner, $manager] as $user) {
+            foreach ($labels as $locale => $label) {
+                $banner = $this->bannerHtml($user, 'obn-banner-sariq', $locale);
+                $this->assertStringContainsString('class="obn-banner-contact"', $banner);
+                $this->assertStringContainsString($label, $banner);
+                $this->assertStringContainsString($tel, $banner);
+                $this->assertStringContainsString('+998 97 236 28 28', $banner);
+                $this->assertStringContainsString($telegram, $banner);
+                $this->assertStringContainsString('@smartshop571', $banner);
+            }
+        }
+
+        // Faqat o'qish — qizilda bor, kulrangda yo'q
+        $this->setPlan($farm, 'basic', '2026-11-07');
+        foreach ([$owner, $manager] as $user) {
+            foreach ($labels as $locale => $label) {
+                $banner = $this->bannerHtml($user, 'obn-banner-qizil', $locale);
+                $this->assertStringContainsString($label, $banner);
+                $this->assertStringContainsString($tel, $banner);
+                $this->assertStringContainsString($telegram, $banner);
+            }
+        }
+        foreach ([$worker, $viewer] as $user) {
+            $banner = $this->bannerHtml($user, 'obn-banner-kulrang');
+            $this->assertStringNotContainsString('obn-banner-contact', $banner);
+            $this->assertStringNotContainsString('tel:', $banner);
+            $this->assertStringNotContainsString('t.me/', $banner);
+            $this->assertStringNotContainsString("Bog&#039;lanish:", $banner);
+
+            // Footer esa ularda ham bor
+            $this->actingAs($user)->get(route('dashboard'))->assertSee('class="chv-support"', false)->assertDontSee($tel, false);
+        }
+    }
+
     public function test_farm_menu_shows_plan_and_payment_history_to_owner_only(): void
     {
         $owner = User::factory()->create();

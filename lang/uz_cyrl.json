@@ -118,7 +118,7 @@
     ":count tagacha hayvon": ":count тагача ҳайвон",
     "Oyiga :count ta AI maslahat": "Ойига :count та АИ маслаҳат",
     "Oyiga :count ta rasm tahlili": "Ойига :count та расм таҳлили",
-    "Tarifni o'zgartirish uchun administratsiyaga murojaat qiling.": "Тарифни ўзгартириш учун администрацияга мурожаат қилинг.",
+    "Tarifni o'zgartirish yoki to'lov qilish uchun biz bilan bog'laning:": "Тарифни ўзгартириш ёки тўлов қилиш учун биз билан боғланинг:",
     "30 kun": "30 кун",
     "7 kun": "7 кун",
     ":date gacha": ":date гача",
@@ -509,5 +509,9 @@
     "Tarif almashtirildi": "Тариф алмаштирилди",
     "Tarifni almashtirish (to'lovsiz)": "Тарифни алмаштириш (тўловсиз)",
     "Bu amal to'lov yozuvisiz tarifni o'zgartiradi. Davom etasizmi?": "Бу амал тўлов ёзувисиз тарифни ўзгартиради. Давом этасизми?",
-    "Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi.": "Янги тарифда ходимлар лимити камроқ бўлса, ортиқча ходимлар (энг охирги қўшилганлар) тўхтатилади."
+    "Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi.": "Янги тарифда ходимлар лимити камроқ бўлса, ортиқча ходимлар (энг охирги қўшилганлар) тўхтатилади.",
+    "Yordam kerak bo'lsa, Telegram orqali yozing:": "Ёрдам керак бўлса, Telegram орқали ёзинг:",
+    "Chorvadorim yordam xizmati": "Chorvadorim ёрдам хизмати",
+    "Imkon qadar tez javob beramiz.": "Имкон қадар тез жавоб берамиз.",
+    "Bog'lanish:": "Боғланиш:"
 }

@@ -118,7 +118,7 @@
     ":count tagacha hayvon": "До :count животных",
     "Oyiga :count ta AI maslahat": "ИИ-консультаций в месяц: :count",
     "Oyiga :count ta rasm tahlili": "Анализов фото в месяц: :count",
-    "Tarifni o'zgartirish uchun administratsiyaga murojaat qiling.": "Чтобы сменить тариф, обратитесь к администрации.",
+    "Tarifni o'zgartirish yoki to'lov qilish uchun biz bilan bog'laning:": "Чтобы сменить тариф или оплатить подписку, свяжитесь с нами:",
     "30 kun": "30 дней",
     "7 kun": "7 дней",
     ":date gacha": "до :date",
@@ -509,5 +509,9 @@
     "Tarif almashtirildi": "Тариф изменён",
     "Tarifni almashtirish (to'lovsiz)": "Сменить тариф (без оплаты)",
     "Bu amal to'lov yozuvisiz tarifni o'zgartiradi. Davom etasizmi?": "Это действие изменит тариф без записи об оплате. Продолжить?",
-    "Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi.": "Если в новом тарифе лимит сотрудников меньше, лишние сотрудники (добавленные последними) будут приостановлены."
+    "Yangi tarifda xodimlar limiti kamroq bo'lsa, ortiqcha xodimlar (eng oxirgi qo'shilganlar) to'xtatiladi.": "Если в новом тарифе лимит сотрудников меньше, лишние сотрудники (добавленные последними) будут приостановлены.",
+    "Yordam kerak bo'lsa, Telegram orqali yozing:": "Если нужна помощь, напишите в Telegram:",
+    "Chorvadorim yordam xizmati": "Служба поддержки Chorvadorim",
+    "Imkon qadar tez javob beramiz.": "Ответим как можно быстрее.",
+    "Bog'lanish:": "Связь:"
 }

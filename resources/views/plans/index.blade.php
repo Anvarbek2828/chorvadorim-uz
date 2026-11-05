@@ -80,9 +80,35 @@
                     @endforeach
                 </div>
 
-                <p class="text-sm text-gray-500 mt-4">
-                    {{ __("Tarifni o'zgartirish uchun administratsiyaga murojaat qiling.") }}
+                <style>
+                    .chv-contact-buttons { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .75rem; }
+                    .chv-contact-btn { flex: 1 1 13rem; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.875rem; padding: .625rem 1rem; border-radius: .5rem; font-weight: 600; text-decoration: none; color: #fff; }
+                    .chv-contact-btn svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+                    .chv-contact-btn--phone { background: #16a34a; }
+                    .chv-contact-btn--phone:hover, .chv-contact-btn--phone:focus { background: #15803d; }
+                    .chv-contact-btn--telegram { background: #229ED9; }
+                    .chv-contact-btn--telegram:hover, .chv-contact-btn--telegram:focus { background: #1b84b6; }
+                    html.dark .chv-contact-btn, html.dark .chv-contact-btn span { color: #fff !important; }
+                    @media (min-width: 640px) { .chv-contact-btn { flex: 0 1 auto; } }
+                </style>
+
+                <p class="text-sm text-gray-600 mt-4">
+                    {{ __("Tarifni o'zgartirish yoki to'lov qilish uchun biz bilan bog'laning:") }}
                 </p>
+                <div class="chv-contact-buttons">
+                    <a href="tel:{{ config('chorvadorim.contact.phone') }}" class="chv-contact-btn chv-contact-btn--phone">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                            <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/>
+                        </svg>
+                        <span>{{ config('chorvadorim.contact.phone_display') }}</span>
+                    </a>
+                    <a href="https://t.me/{{ config('chorvadorim.contact.telegram') }}" target="_blank" rel="noopener" class="chv-contact-btn chv-contact-btn--telegram">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                            <path d="M3.4 11.3l16.1-6.2c.8-.3 1.4.2 1.2 1.3l-2.7 12.9c-.2.9-.7 1.1-1.5.7l-4.1-3-2 1.9c-.2.2-.4.4-.9.4l.3-4.2 7.6-6.9c.3-.3-.1-.5-.5-.2l-9.4 5.9-4-1.3c-.9-.3-.9-.9.2-1.3z"/>
+                        </svg>
+                        <span>{{ '@' . config('chorvadorim.contact.telegram') }}</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
