@@ -12,7 +12,9 @@
     $startUrl = $isAuth ? route('dashboard') : route('register');
     $startLabel = $isAuth ? __("Kabinetga o'tish") : __('Bepul boshlash');
 
-    $botUrl = 'https://t.me/' . config('chorvadorim.telegram_bot');
+    // Serverda config keshi eski bo'lsa ham havola buzilmasin
+    $botUsername = config('chorvadorim.telegram_bot') ?: 'chorvadorim_bot';
+    $botUrl = 'https://t.me/' . $botUsername;
     $contactPhone = config('chorvadorim.contact.phone');
     $contactPhoneDisplay = config('chorvadorim.contact.phone_display');
     $contactTelegram = config('chorvadorim.contact.telegram');
@@ -319,7 +321,7 @@
                             @include('landing.partials.icon', ['name' => 'telegram'])
                             {{ __('Botni ochish') }}
                         </a>
-                        <span class="lp-bot__handle">{{ '@' . config('chorvadorim.telegram_bot') }}</span>
+                        <span class="lp-bot__handle">{{ '@' . $botUsername }}</span>
                     </div>
                 </div>
                 <ul class="lp-bot__list">
