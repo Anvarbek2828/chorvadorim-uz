@@ -90,7 +90,7 @@
     <title>{{ $pageTitle }}</title>
     <meta name="description" content="{{ $pageDescription }}">
     <link rel="canonical" href="{{ url('/') }}">
-    <meta name="theme-color" content="#2F4B33">
+    @include('layouts.partials.pwa-head')
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Chorvadorim.uz">
@@ -199,6 +199,11 @@
                             @include('landing.partials.icon', ['name' => 'telegram'])
                             {{ __('Telegram bot') }}
                         </a>
+                        {{-- Faqat o'rnatish mumkin bo'lganda ko'rinadi (public/pwa.js) --}}
+                        <button type="button" class="lp-btn lp-btn--ghost" data-chv-install hidden>
+                            @include('landing.partials.icon', ['name' => 'download'])
+                            {{ __("Ilovani o'rnatish") }}
+                        </button>
                     </div>
 
                     <ul class="lp-ticks">
@@ -413,7 +418,7 @@
                         <summary>{{ __("Internet sekin bo'lsa ishlaydimi?") }}</summary>
                         <div class="lp-faq__body">
                             <p>{{ __("Ha. Sahifalar yengil, og'ir rasm va videolarsiz — oddiy telefonda ham ochiladi. Eslatmalar Telegram orqali keladi, u sekin internetda ham yaxshi ishlaydi.") }}</p>
-                            <p>{{ __("Ma'lumot kiritish va ko'rish uchun internet bo'lishi kerak.") }}</p>
+                            <p>{{ __("Internet butunlay yo'q bo'lsa, oldin ochilgan sahifalarni ko'rish mumkin. Yangi ma'lumot kiritish uchun esa internet kerak.") }}</p>
                         </div>
                     </details>
                     <details>
@@ -446,7 +451,8 @@
                     <details>
                         <summary>{{ __("Telefonga ilova o'rnatish kerakmi?") }}</summary>
                         <div class="lp-faq__body">
-                            <p>{{ __("Yo'q. Chorvadorim brauzerda ochiladi — telefonda ham, kompyuterda ham. Eslatmalar uchun faqat Telegram kerak.") }}</p>
+                            <p>{{ __("Shart emas: Chorvadorim brauzerda ochiladi — telefonda ham, kompyuterda ham.") }}</p>
+                            <p>{{ __("Xohlasangiz, uni ilova sifatida o'rnating: telefon ekranida belgisi paydo bo'ladi, tezroq ochiladi va internet yo'qligida oxirgi ochilgan sahifalarni ko'rsatadi. Android'da sahifadagi «Ilovani o'rnatish» tugmasini, iPhone'da esa «Ulashish» → «Bosh ekranga qo'shish» ni bosing.") }}</p>
                         </div>
                     </details>
                 </div>
@@ -463,6 +469,10 @@
                         {{ $startLabel }}
                         @include('landing.partials.icon', ['name' => 'arrow'])
                     </a>
+                    <button type="button" class="lp-btn lp-btn--ghost" data-chv-install hidden>
+                        @include('landing.partials.icon', ['name' => 'download'])
+                        {{ __("Ilovani o'rnatish") }}
+                    </button>
                 </div>
                 <div class="lp-final__contact">
                     <a href="tel:{{ $contactPhone }}">@include('landing.partials.icon', ['name' => 'phone']) {{ $contactPhoneDisplay }}</a>
@@ -476,6 +486,8 @@
 
     {{-- 10. Yordam qatori (har sahifada bir xil) --}}
     @include('layouts.partials.support-footer')
+
+    @include('layouts.partials.pwa-scripts')
 
     <script>
         (function () {

@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Route;
 // Bosh sahifa: kirgan foydalanuvchiga ham ko'rsatiladi ("Kabinetga o'tish" tugmasi bilan)
 Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('home');
 
+// Internet yo'qligida service worker ko'rsatadigan sahifa (public/sw.js oldindan keshlaydi)
+Route::view('/offline', 'offline')->name('offline');
+
 
 
 Route::get('/dashboard', function () {

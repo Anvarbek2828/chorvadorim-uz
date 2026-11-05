@@ -10,6 +10,8 @@
 
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        @include('layouts.partials.pwa-head')
+
 
 
         <title>{{ config('app.name', 'Laravel') }}</title>
@@ -189,6 +191,8 @@
             @include('layouts.partials.support-footer')
 
         </div>
+
+        @include('layouts.partials.pwa-scripts')
 
     </body>
 
