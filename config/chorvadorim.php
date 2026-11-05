@@ -19,4 +19,16 @@ return [
         'telegram' => 'smartshop571',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Telegram bot
+    |--------------------------------------------------------------------------
+    |
+    | Bot foydalanuvchi nomi (@ belgisisiz). Bosh sahifadagi "Telegram bot" tugmalari
+    | https://t.me/{telegram_bot} ga olib boradi.
+    |
+    */
+
+    'telegram_bot' => 'chorvadorim_bot',
+
 ];

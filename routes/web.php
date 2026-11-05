@@ -16,11 +16,8 @@ use Illuminate\Support\Facades\Route;
 
 
 
-Route::get('/', function () {
-
-    return auth()->check() ? redirect('/dashboard') : view('landing');
-
-});
+// Bosh sahifa: kirgan foydalanuvchiga ham ko'rsatiladi ("Kabinetga o'tish" tugmasi bilan)
+Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('home');
 
 
 
