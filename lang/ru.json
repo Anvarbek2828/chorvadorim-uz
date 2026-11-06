@@ -652,5 +652,21 @@
     ":add «Добавить на экран «Домой»» ni bosing (telefon inglizcha bo'lsa — «Add to Home Screen»).": "Нажмите :add «Добавить на экран «Домой»» (если телефон на английском — «Add to Home Screen»).",
     ":add «Добавить на экран «Домой»» ni bosing (inglizcha — «Add to Home Screen»).": "Нажмите :add «Добавить на экран «Домой»» (на английском — «Add to Home Screen»).",
     "Sahifa eskirgan edi. Iltimos, qayta urinib ko'ring.": "Страница устарела. Пожалуйста, попробуйте ещё раз.",
-    "Bu sahifa internetsiz ochilgan edi. Sahifani yangilang, so'ng qayta yuboring.": "Эта страница была открыта без интернета. Обновите страницу и отправьте снова."
+    "Bu sahifa internetsiz ochilgan edi. Sahifani yangilang, so'ng qayta yuboring.": "Эта страница была открыта без интернета. Обновите страницу и отправьте снова.",
+    "Tepadagi :menu (uch nuqta) tugmasini bosing.": "Нажмите кнопку :menu (три точки) вверху.",
+    "Ochilgan ro'yxatdan quyidagi bandni toping.": "Найдите в открывшемся списке нужный пункт.",
+    "«Установить приложение» yoki «Добавить на главный экран» ni bosing («Install app» / «Add to Home screen»).": "Нажмите «Установить приложение» или «Добавить на главный экран» («Install app» / «Add to Home screen»).",
+    "Pastdagi :menu tugmasini bosing.": "Нажмите кнопку :menu внизу.",
+    "«Добавить ярлык» yoki «Добавить на главный экран» ni bosing.": "Нажмите «Добавить ярлык» или «Добавить на главный экран».",
+    "Pastdagi :burger (uch chiziq) tugmasini bosing.": "Нажмите кнопку :burger (три линии) внизу.",
+    "«Добавить страницу на» ni tanlang («Add page to»).": "Выберите «Добавить страницу на» («Add page to»).",
+    "«Главный экран» ni bosing («Home screen»).": "Нажмите «Главный экран» («Home screen»).",
+    "Pastdagi :burger yoki :menu tugmasini bosing.": "Нажмите кнопку :burger или :menu внизу.",
+    "«Добавить в» yoki «Добавить на рабочий стол» ni toping.": "Найдите «Добавить в» или «Добавить на рабочий стол».",
+    "Qo'shishni tasdiqlang.": "Подтвердите добавление.",
+    ":menu tugmasini bosing.": "Нажмите кнопку :menu.",
+    "Ro'yxatdan «Добавить на» bandini toping.": "Найдите в списке пункт «Добавить на».",
+    "«Домашний экран» yoki «Главный экран» ni bosing («Home screen»).": "Нажмите «Домашний экран» или «Главный экран» («Home screen»).",
+    "«Установить» yoki «Добавить на главный экран» ni bosing («Install» / «Add to Home screen»).": "Нажмите «Установить» или «Добавить на главный экран» («Install» / «Add to Home screen»).",
+    "Brauzeringiz boshqacha bo'lsa — menyudan «главный экран» so'zini qidiring.": "Если у вас другой браузер — найдите в меню пункт со словами «главный экран»."
 }

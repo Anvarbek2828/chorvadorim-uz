@@ -20,7 +20,7 @@
  */
 'use strict';
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const STATIC_CACHE = 'chv-static-' + CACHE_VERSION;
 const PAGES_CACHE = 'chv-pages-' + CACHE_VERSION;
 const META_CACHE = 'chv-meta';

@@ -155,9 +155,73 @@ class PwaTest extends TestCase
         $this->assertStringContainsString('CLEAR_PAGES', $sw);
     }
 
-    public function test_cache_version_is_v4(): void
+    public function test_cache_version_is_v5(): void
     {
-        $this->assertStringContainsString("const CACHE_VERSION = 'v4';", file_get_contents(public_path('sw.js')));
+        $this->assertStringContainsString("const CACHE_VERSION = 'v5';", file_get_contents(public_path('sw.js')));
+    }
+
+    /** Android ko'rsatmalari: [brauzer => [1-qadam, 2-qadam, 3-qadam]] (uz kalitlar) */
+    private const ANDROID_STEPS = [
+        'chrome' => ['Tepadagi :menu (uch nuqta) tugmasini bosing.', "Ochilgan ro'yxatdan quyidagi bandni toping.", '«Установить приложение» yoki «Добавить на главный экран» ni bosing («Install app» / «Add to Home screen»).'],
+        'yandex' => ['Pastdagi :menu tugmasini bosing.', "Ochilgan ro'yxatni pastga suring.", '«Добавить ярлык» yoki «Добавить на главный экран» ni bosing.'],
+        'samsung' => ['Pastdagi :burger (uch chiziq) tugmasini bosing.', '«Добавить страницу на» ni tanlang («Add page to»).', '«Главный экран» ni bosing («Home screen»).'],
+        'xiaomi' => ['Pastdagi :burger yoki :menu tugmasini bosing.', '«Добавить в» yoki «Добавить на рабочий стол» ni toping.', "Qo'shishni tasdiqlang."],
+        'opera' => [':menu tugmasini bosing.', "Ro'yxatdan «Добавить на» bandini toping.", '«Домашний экран» yoki «Главный экран» ni bosing («Home screen»).'],
+        'firefox' => [':menu tugmasini bosing.', "Ochilgan ro'yxatdan quyidagi bandni toping.", '«Установить» yoki «Добавить на главный экран» ni bosing («Install» / «Add to Home screen»).'],
+    ];
+
+    private const ANDROID_NOTE = "Brauzeringiz boshqacha bo'lsa — menyudan «главный экран» so'zini qidiring.";
+
+    public function test_android_instructions_in_three_languages(): void
+    {
+        $flags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE;
+
+        foreach (['uz_cyrl', 'ru'] as $locale) {
+            $json = json_decode(file_get_contents(lang_path($locale . '.json')), true);
+            foreach (array_merge(array_merge(...array_values(self::ANDROID_STEPS)), [self::ANDROID_NOTE]) as $key) {
+                $this->assertArrayHasKey($key, $json, "{$locale}.json da yo'q: {$key}");
+                // Belgilar o'rni va menyu bandi nomlari (tarjima qilinmaydi) saqlangan
+                foreach ([':menu', ':burger'] as $token) {
+                    $this->assertSame(substr_count($key, $token), substr_count($json[$key], $token), "{$locale}: {$token} — {$key}");
+                }
+                preg_match_all('/«[^»]*»/u', $key, $names);
+                foreach ($names[0] as $name) {
+                    if (preg_match('/[А-Яа-яЁё]|[A-Z][a-z]+ /u', $name)) {
+                        $this->assertStringContainsString($name, $json[$key], "{$locale}: menyu nomi o'zgarmasin — {$name}");
+                    }
+                }
+            }
+        }
+
+        foreach (['uz', 'uz_cyrl', 'ru'] as $locale) {
+            $config = [];
+            foreach (self::ANDROID_STEPS as $browser => $steps) {
+                $config[$browser] = array_map(fn ($k) => __($k, [], $locale), $steps);
+            }
+
+            $this->withSession(['locale' => $locale])->get('/')->assertOk()
+                ->assertSee('"android":' . json_encode($config, $flags), false)
+                ->assertSee('"androidNote":' . json_encode(__(self::ANDROID_NOTE, [], $locale), $flags), false)
+                ->assertSee('«Установить приложение»', false)
+                ->assertSee('«Добавить страницу на»', false);
+        }
+    }
+
+    public function test_pwa_js_detects_android_browsers_and_in_app(): void
+    {
+        $js = file_get_contents(public_path('pwa.js'));
+
+        foreach (['/YaBrowser/', '/SamsungBrowser/', '/MiuiBrowser|XiaoMi/', '/OPR\/|Opera/', '/Firefox\//', "'chrome'", '; wv\)', 'Telegram', 'Instagram', 'FBAN'] as $needle) {
+            $this->assertStringContainsString($needle, $js, "pwa.js da yo'q: {$needle}");
+        }
+
+        $this->assertStringContainsString('var androidOffer = isAndroid && !inApp;', $js);
+        $this->assertStringContainsString('var ANDROID_PROMPT_WAIT = 4000;', $js);
+        // Prompt kelsa, Android ko'rsatmasi "O'rnatish" paneli bilan almashtiriladi
+        $this->assertStringContainsString("if (panelKind === 'android') { hidePanel(); }", $js);
+        // Belgilar: uch nuqta va uch chiziq
+        $this->assertStringContainsString("menu: { cls: 'chv-menu-icon', dots: true", $js);
+        $this->assertStringContainsString("burger: { cls: 'chv-burger-icon', paths: ['M5 7h14', 'M5 12h14', 'M5 17h14'] }", $js);
     }
 
     public function test_sw_navigate_strategy_never_serves_cache_online(): void
@@ -249,7 +313,7 @@ class PwaTest extends TestCase
 
         // :add — yumaloq burchakli kvadrat ichida "+"
         $this->assertStringContainsString("add: { cls: 'chv-add-icon', rect: true, paths: ['M12 8v8', 'M8 12h8'] }", $js);
-        $this->assertStringContainsString("split(/(:share|:add)/)", $js);
+        $this->assertStringContainsString("split(/(:share|:add|:menu|:burger)/)", $js);
         $this->assertStringContainsString("el('ol', 'chv-install__steps')", $js);
         $this->assertStringContainsString('.chv-install--ios', $partial);
         $this->assertStringContainsString('max-height: 50vh', $partial);

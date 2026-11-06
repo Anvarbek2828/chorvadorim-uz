@@ -247,9 +247,24 @@
     // Safari — iPhone'da pastda, iPad'da tepada
     var iosThirdParty = /CriOS|EdgiOS|FxiOS/.test(ua);
     var iosOffer = isIOS && !inApp;
+
+    // Android brauzeri (UA bo'yicha). Noma'lum Android brauzer — Chrome ko'rsatmasi.
+    // WebView ("; wv)") va ilova ichki brauzerlari yuqoridagi inApp orqali chiqarib tashlanadi.
+    var isAndroid = /Android/i.test(ua);
+    var androidBrowser = !isAndroid ? null
+        : /YaBrowser/.test(ua) ? 'yandex'
+        : /SamsungBrowser/.test(ua) ? 'samsung'
+        : /MiuiBrowser|XiaoMi/.test(ua) ? 'xiaomi'
+        : /OPR\/|Opera/.test(ua) ? 'opera'
+        : /Firefox\//.test(ua) ? 'firefox'
+        : 'chrome';
+    var androidOffer = isAndroid && !inApp;
+    var ANDROID_PROMPT_WAIT = 4000;
+
     var canOffer = !standalone && !inApp;
     var deferredPrompt = null;
     var panel = null;
+    var panelKind = null;
 
     function dismissedRecently() {
         var at = parseInt(read(DISMISS_KEY) || '0', 10);
@@ -268,15 +283,19 @@
     function hidePanel() {
         if (panel && panel.parentNode) { panel.parentNode.removeChild(panel); }
         panel = null;
+        panelKind = null;
         document.body.classList.remove('chv-has-install');
         document.body.style.paddingBottom = '';
     }
 
-    // Matn ichidagi belgilar (iOS'dagi ko'rinishiga o'xshash):
+    // Matn ichidagi belgilar (telefondagi ko'rinishiga o'xshash):
     //  share — "Ulashish": kvadrat va yuqoriga strelka; add — "Добавить на экран «Домой»": kvadrat ichida "+"
+    //  menu — vertikal uch nuqta; burger — uch gorizontal chiziq (Android brauzerlari menyusi)
     var ICONS = {
         share: { cls: 'chv-share-icon', paths: ['M12 3v12', 'M8 7l4-4 4 4', 'M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1'] },
-        add: { cls: 'chv-add-icon', rect: true, paths: ['M12 8v8', 'M8 12h8'] }
+        add: { cls: 'chv-add-icon', rect: true, paths: ['M12 8v8', 'M8 12h8'] },
+        menu: { cls: 'chv-menu-icon', dots: true, paths: [] },
+        burger: { cls: 'chv-burger-icon', paths: ['M5 7h14', 'M5 12h14', 'M5 17h14'] }
     };
 
     function inlineIcon(name) {
@@ -296,6 +315,16 @@
             rect.setAttribute('rx', '4.5');
             svg.appendChild(rect);
         }
+        if (def.dots) {
+            for (var d = 0; d < 3; d++) {
+                var dot = document.createElementNS(ns, 'circle');
+                dot.setAttribute('cx', '12');
+                dot.setAttribute('cy', String(5.5 + d * 6.5));
+                dot.setAttribute('r', '1.9');
+                dot.setAttribute('class', 'chv-icon-dot');
+                svg.appendChild(dot);
+            }
+        }
         for (var i = 0; i < def.paths.length; i++) {
             var p = document.createElementNS(ns, 'path');
             p.setAttribute('d', def.paths[i]);
@@ -304,12 +333,12 @@
         return svg;
     }
 
-    // Matndagi ":share" va ":add" o'rniga belgi qo'yiladi (innerHTML ishlatilmaydi)
+    // Matndagi ":share", ":add", ":menu", ":burger" o'rniga belgi qo'yiladi (innerHTML ishlatilmaydi)
     function richText(node, text) {
-        var parts = String(text || '').split(/(:share|:add)/);
+        var parts = String(text || '').split(/(:share|:add|:menu|:burger)/);
         for (var i = 0; i < parts.length; i++) {
-            if (parts[i] === ':share') { node.appendChild(inlineIcon('share')); }
-            else if (parts[i] === ':add') { node.appendChild(inlineIcon('add')); }
+            var token = parts[i].charAt(0) === ':' ? parts[i].substring(1) : null;
+            if (token && ICONS[token]) { node.appendChild(inlineIcon(token)); }
             else if (parts[i]) { node.appendChild(document.createTextNode(parts[i])); }
         }
         return node;
@@ -317,9 +346,18 @@
 
     // iPhone/iPad: brauzerga mos 3 ta raqamlangan qadam
     function iosSteps() {
-        var steps = iosThirdParty
+        return stepList(iosThirdParty
             ? [t.iosStep1Other, t.iosStep2, t.iosStep3Other]
-            : [isIPad ? t.iosStep1SafariPad : t.iosStep1SafariPhone, t.iosStep2, t.iosStep3Safari];
+            : [isIPad ? t.iosStep1SafariPad : t.iosStep1SafariPhone, t.iosStep2, t.iosStep3Safari]);
+    }
+
+    // Android: brauzerga mos 3 ta qadam (t.android.chrome, .yandex, .samsung, .xiaomi, .opera, .firefox)
+    function androidSteps() {
+        var all = t.android || {};
+        return stepList(all[androidBrowser] || all.chrome || []);
+    }
+
+    function stepList(steps) {
         var list = el('ol', 'chv-install__steps');
         for (var i = 0; i < steps.length; i++) {
             var item = el('li', 'chv-install__step');
@@ -330,9 +368,13 @@
         return list;
     }
 
-    function showPanel(ios) {
+    // kind: 'prompt' — "O'rnatish" tugmali panel (Android/kompyuter, beforeinstallprompt);
+    //       'ios' — iPhone/iPad ko'rsatmasi; 'android' — Android ko'rsatmasi (prompt bo'lmaganda)
+    function showPanel(kind) {
         if (panel || !document.body) { return; }
-        panel = el('div', ios ? 'chv-install chv-install--ios' : 'chv-install');
+        var steps = kind === 'ios' || kind === 'android';
+        panelKind = kind;
+        panel = el('div', 'chv-install' + (steps ? ' chv-install--' + kind : ''));
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-label', t.installTitle);
 
@@ -347,7 +389,7 @@
         body.appendChild(el('p', 'chv-install__text', t.installText));
         var actions = el('div', 'chv-install__actions');
 
-        if (!ios) {
+        if (!steps) {
             var install = el('button', 'chv-btn chv-btn--light', t.installBtn);
             install.type = 'button';
             install.addEventListener('click', promptInstall);
@@ -362,10 +404,11 @@
         });
         actions.appendChild(later);
 
-        if (ios) {
-            // iOS: ikonka va sarlavha bir qatorda, qadamlar va tugma ostida to'liq kenglikda
+        if (steps) {
+            // Ko'rsatma: ikonka va sarlavha bir qatorda, qadamlar va tugma ostida to'liq kenglikda
             panel.appendChild(body);
-            panel.appendChild(iosSteps());
+            panel.appendChild(kind === 'ios' ? iosSteps() : androidSteps());
+            if (kind === 'android') { panel.appendChild(el('p', 'chv-install__note', t.androidNote)); }
             panel.appendChild(actions);
         } else {
             body.appendChild(actions);
@@ -373,25 +416,32 @@
         }
         document.body.appendChild(panel);
         document.body.classList.add('chv-has-install');
-        // iOS paneli balandroq: sahifa oxiri uning ostida qolmasin (Android/kompyuter paneli o'zgarmaydi)
-        if (ios) { document.body.style.paddingBottom = (panel.offsetHeight + 24) + 'px'; }
+        // Ko'rsatma paneli balandroq: sahifa oxiri uning ostida qolmasin ("O'rnatish" paneli o'zgarmaydi)
+        if (steps) { document.body.style.paddingBottom = (panel.offsetHeight + 24) + 'px'; }
     }
 
     function promptInstall() {
         if (!deferredPrompt) {
-            // iOS: tugma bosilganda ko'rsatma "Keyinroq" dan qat'i nazar ochiladi
-            if (iosOffer) { showPanel(true); }
+            // Tugma bosilganda ko'rsatma "Keyinroq" dan qat'i nazar ochiladi
+            if (iosOffer) { showPanel('ios'); }
+            else if (androidOffer) { showPanel('android'); }
             return;
         }
         var promptEvent = deferredPrompt;
         deferredPrompt = null;
         promptEvent.prompt();
         if (promptEvent.userChoice) {
-            promptEvent.userChoice.then(function () {
+            promptEvent.userChoice.then(function (choice) {
                 hidePanel();
-                setInstallButtons(false);
+                // Android'da rad etilsa tugma qoladi (keyingi bosishda ko'rsatma ochiladi)
+                if (!androidOffer || (choice && choice.outcome === 'accepted')) { setInstallButtons(false); }
             });
         }
+    }
+
+    function offerAndroidSteps() {
+        if (deferredPrompt || panel || !cfg.installPanel || dismissedRecently()) { return; }
+        showPanel('android');
     }
 
     if (canOffer) {
@@ -399,7 +449,9 @@
             e.preventDefault();
             deferredPrompt = e;
             setInstallButtons(true);
-            if (cfg.installPanel && !dismissedRecently()) { showPanel(false); }
+            // Avval Android ko'rsatmasi chiqqan bo'lsa, "O'rnatish" tugmali panel bilan almashtiriladi
+            if (panelKind === 'android') { hidePanel(); }
+            if (cfg.installPanel && !dismissedRecently()) { showPanel('prompt'); }
         });
 
         window.addEventListener('appinstalled', function () {
@@ -416,10 +468,23 @@
             setInstallButtons(true);
             if (cfg.installPanel && !dismissedRecently()) {
                 if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', function () { showPanel(true); });
+                    document.addEventListener('DOMContentLoaded', function () { showPanel('ios'); });
                 } else {
-                    showPanel(true);
+                    showPanel('ios');
                 }
+            }
+        }
+
+        // Android: tugmalar doim ko'rinadi. Yandex, Samsung, Xiaomi, Opera, Firefox'da prompt odatda
+        // kelmaydi — ko'rsatma darhol; Chrome va noma'lum brauzerda ~4 soniya prompt kutiladi
+        if (androidOffer) {
+            setInstallButtons(true);
+            if (androidBrowser === 'chrome') {
+                setTimeout(offerAndroidSteps, ANDROID_PROMPT_WAIT);
+            } else if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', offerAndroidSteps);
+            } else {
+                offerAndroidSteps();
             }
         }
     }
