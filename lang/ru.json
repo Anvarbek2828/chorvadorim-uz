@@ -650,5 +650,7 @@
     "Ekran tepasidagi :share tugmasini bosing.": "Нажмите кнопку :share вверху экрана.",
     "Ochilgan ro'yxatni pastga suring.": "Прокрутите открывшийся список вниз.",
     ":add «Добавить на экран «Домой»» ni bosing (telefon inglizcha bo'lsa — «Add to Home Screen»).": "Нажмите :add «Добавить на экран «Домой»» (если телефон на английском — «Add to Home Screen»).",
-    ":add «Добавить на экран «Домой»» ni bosing (inglizcha — «Add to Home Screen»).": "Нажмите :add «Добавить на экран «Домой»» (на английском — «Add to Home Screen»)."
+    ":add «Добавить на экран «Домой»» ni bosing (inglizcha — «Add to Home Screen»).": "Нажмите :add «Добавить на экран «Домой»» (на английском — «Add to Home Screen»).",
+    "Sahifa eskirgan edi. Iltimos, qayta urinib ko'ring.": "Страница устарела. Пожалуйста, попробуйте ещё раз.",
+    "Bu sahifa internetsiz ochilgan edi. Sahifani yangilang, so'ng qayta yuboring.": "Эта страница была открыта без интернета. Обновите страницу и отправьте снова."
 }

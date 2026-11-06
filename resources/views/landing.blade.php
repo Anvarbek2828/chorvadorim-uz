@@ -182,6 +182,8 @@
     </header>
 
     <main id="asosiy">
+        <div class="lp-wrap">@include('layouts.partials.page-expired')</div>
+
         {{-- 1. Bosh ekran --}}
         <section class="lp-hero" aria-labelledby="lp-hero-title">
             <div class="lp-wrap lp-hero__grid">

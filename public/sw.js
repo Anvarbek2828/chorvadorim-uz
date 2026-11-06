@@ -7,15 +7,20 @@
  *
  * Strategiya:
  *  - Statik fayllar (/build/*, /icons/*, /pwa.js, shriftlar): avval kesh, keyin tarmoq.
- *  - Sahifalar (navigate, GET): avval tarmoq; tarmoq bo'lmasa keshdagi oxirgi nusxa, u ham
- *    bo'lmasa /offline. Keshdan berilgan sahifaga <html data-chv-offline="1"> belgisi qo'shiladi.
+ *  - Sahifalar (navigate, GET): har doim tarmoq. Keshdagi nusxa FAQAT fetch tarmoq xatosi bilan
+ *    tushganda beriladi (sekin javob, 3xx/4xx/5xx — baribir tarmoq javobi qaytadi). Keshga faqat
+ *    200, redirect bo'lmagan, basic, HTML javob yoziladi. Keshdan berilgan sahifaga
+ *    <html data-chv-offline="1"> belgisi qo'shiladi: undagi POST formalar pwa.js da to'xtatiladi
+ *    (eski CSRF token — 419), internet qaytsa sahifa qayta yuklanadi.
+ *  - SW o'zi yuboradigan so'rovlar (oldindan keshlash) cookie'siz (credentials: 'omit'): ular
+ *    sessiya cookie'sini qayta yozib, kirish/chiqish paytida sessiyani almashtirib yubormasin.
  *  - Faqat o'z domeni. GET bo'lmagan so'rovlar va BYPASS ro'yxatidagi yo'llarga aralashilmaydi.
  *  - Sahifa javobidagi <meta name="chv-user"> o'zgarsa (chiqish/boshqa foydalanuvchi), sahifa keshi
  *    butunlay tozalanadi. Kesh nomlarida foydalanuvchi ID yo'q.
  */
 'use strict';
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = 'chv-static-' + CACHE_VERSION;
 const PAGES_CACHE = 'chv-pages-' + CACHE_VERSION;
 const META_CACHE = 'chv-meta';
@@ -72,7 +77,8 @@ function pageKey(url) {
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(STATIC_CACHE).then((cache) =>
-            cache.addAll(PRECACHE.map((url) => new Request(url, { cache: 'reload', credentials: 'same-origin' })))
+            // Cookie'siz: fonda ketgan so'rov javobidagi Set-Cookie sessiyani eski ID ga qaytarib qo'ymasin
+            cache.addAll(PRECACHE.map((url) => new Request(url, { cache: 'reload', credentials: 'omit' })))
         )
     );
     // skipWaiting bu yerda chaqirilmaydi: yangi versiya foydalanuvchi "Yangilash" ni bosgandagina ishga tushadi
@@ -153,22 +159,41 @@ async function cacheFirst(req) {
 
 async function networkFirstPage(event) {
     const req = event.request;
+    let response;
     try {
-        const response = await fetch(req);
-        const type = response.headers.get('Content-Type') || '';
-        const cacheControl = response.headers.get('Cache-Control') || '';
-        if (response.status === 200 && response.type === 'basic' && type.includes('text/html') && !cacheControl.includes('no-store')) {
-            event.waitUntil(storePage(req.url, response.clone()));
-        }
-        return response;
+        response = await fetch(req);
     } catch (err) {
-        const cached = await matchPage(req.url);
-        if (cached) {
-            return markOffline(cached);
-        }
-        const offline = await caches.match(OFFLINE_URL);
-        return offline || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        // Faqat haqiqiy tarmoq xatosi (internet yo'q, server javob bermadi)
+        return offlineFallback(req);
     }
+
+    // Tarmoq javobi har doim o'zi qaytariladi (3xx/4xx/5xx ham) — onlayn holatda kesh ishlatilmaydi.
+    // Keshga faqat 200, redirect bo'lmagan, basic turdagi HTML yoziladi.
+    if (isCacheablePage(response)) {
+        event.waitUntil(storePage(req.url, response.clone()));
+    }
+    return response;
+}
+
+function isCacheablePage(response) {
+    const type = response.headers.get('Content-Type') || '';
+    const cacheControl = response.headers.get('Cache-Control') || '';
+    return response.status === 200
+        && response.ok
+        && response.type === 'basic'
+        && !response.redirected
+        && type.includes('text/html')
+        && !cacheControl.includes('no-store');
+}
+
+// Keshdagi oxirgi nusxa (belgi bilan), u ham bo'lmasa /offline
+async function offlineFallback(req) {
+    const cached = await matchPage(req.url);
+    if (cached) {
+        return markOffline(cached);
+    }
+    const offline = await caches.match(OFFLINE_URL);
+    return offline || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 }
 
 // Sahifa keshiga yozish navbat bilan (foydalanuvchi almashganda poyga bo'lmasin)

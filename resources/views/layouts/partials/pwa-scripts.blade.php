@@ -12,6 +12,7 @@
         't' => [
             'offlineBar' => __("Internet yo'q — oxirgi saqlangan ma'lumot ko'rsatilmoqda"),
             'offlineForm' => __("Internet yo'q. Ma'lumot hozircha saqlanmaydi, internet tiklangach qayta yuboring."),
+            'cachedForm' => __("Bu sahifa internetsiz ochilgan edi. Sahifani yangilang, so'ng qayta yuboring."),
             'update' => __('Yangi versiya tayyor'),
             'updateBtn' => __('Yangilash'),
             'installTitle' => __("Ilovani o'rnatish"),

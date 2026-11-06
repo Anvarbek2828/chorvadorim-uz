@@ -155,9 +155,53 @@ class PwaTest extends TestCase
         $this->assertStringContainsString('CLEAR_PAGES', $sw);
     }
 
-    public function test_cache_version_is_v3(): void
+    public function test_cache_version_is_v4(): void
     {
-        $this->assertStringContainsString("const CACHE_VERSION = 'v3';", file_get_contents(public_path('sw.js')));
+        $this->assertStringContainsString("const CACHE_VERSION = 'v4';", file_get_contents(public_path('sw.js')));
+    }
+
+    public function test_sw_navigate_strategy_never_serves_cache_online(): void
+    {
+        $sw = file_get_contents(public_path('sw.js'));
+
+        // Sahifa funksiyasi: tarmoq javobi har doim qaytariladi; kesh faqat catch (tarmoq xatosi) ichida
+        preg_match('/async function networkFirstPage\(event\) \{(.*?)\n\}/s', $sw, $m);
+        $this->assertNotEmpty($m, 'networkFirstPage topilmadi');
+        $body = $m[1];
+        $this->assertMatchesRegularExpression('/try \{\s*response = await fetch\(req\);\s*\} catch \(err\) \{\s*(\/\/[^\n]*\n\s*)?return offlineFallback\(req\);\s*\}/', $body);
+        $this->assertStringNotContainsString('matchPage', $body);
+        $this->assertStringNotContainsString('caches.match', $body);
+        $this->assertStringContainsString('return response;', $body);
+        $this->assertSame(1, substr_count($sw, 'return offlineFallback(req)'), 'offlineFallback faqat tarmoq xatosida chaqiriladi');
+
+        // Faqat 200, redirect bo'lmagan, basic HTML keshlanadi
+        preg_match('/function isCacheablePage\(response\) \{(.*?)\n\}/s', $sw, $c);
+        $this->assertNotEmpty($c);
+        foreach (['response.status === 200', 'response.ok', "response.type === 'basic'", '!response.redirected', "type.includes('text/html')", "!cacheControl.includes('no-store')"] as $rule) {
+            $this->assertStringContainsString($rule, $c[1], "isCacheablePage da yo'q: {$rule}");
+        }
+
+        // SW o'zi yuboradigan so'rovlar cookie'siz (sessiya cookie'sini qayta yozmasin)
+        $this->assertStringContainsString("new Request(url, { cache: 'reload', credentials: 'omit' })", $sw);
+        $this->assertStringNotContainsString("credentials: 'same-origin'", $sw);
+    }
+
+    public function test_pwa_js_never_posts_from_cached_page(): void
+    {
+        $js = file_get_contents(public_path('pwa.js'));
+
+        // Keshdagi sahifa: POST to'xtatiladi (internet qaytgan bo'lsa ham), internet qaytsa qayta yuklanadi
+        $this->assertStringContainsString("if (method !== 'get' && (isOffline() || fromCache))", $js);
+        $this->assertStringContainsString('t.cachedForm', $js);
+        $this->assertStringContainsString('if (fromCache && !typed && !reloadingFresh)', $js);
+        $this->assertStringNotContainsString('fromCache = false', $js);
+
+        // Internetni tekshirish statik fayl orqali, cookie'siz (Laravel sessiyasiga tegmaydi)
+        $this->assertStringContainsString("fetch('/manifest.json?online=' + Date.now(), { method: 'HEAD', cache: 'no-store', credentials: 'omit' })", $js);
+        $this->assertStringNotContainsString("fetch('/offline'", $js);
+        $this->assertStringNotContainsString("credentials: 'same-origin'", $js);
+
+        $this->get('/')->assertSee('"cachedForm":', false);
     }
 
     public function test_ios_steps_in_three_languages(): void

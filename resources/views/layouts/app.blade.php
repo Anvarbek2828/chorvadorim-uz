@@ -160,6 +160,8 @@
 
             @include('layouts.partials.subscription-banner')
 
+            <div style="padding:0 1rem;">@include('layouts.partials.page-expired')</div>
+
 
 
             <!-- Page Heading -->

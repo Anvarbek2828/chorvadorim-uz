@@ -27,8 +27,13 @@
         return node;
     }
 
-    // Keshdan berilgan sahifa (sw.js qo'yadigan belgi)
+    // Keshdan berilgan sahifa (sw.js qo'yadigan belgi). Undagi CSRF token eskirgan bo'lishi mumkin,
+    // shuning uchun bunday sahifadan POST hech qachon yuborilmaydi (419 bo'lmasin).
     var fromCache = root.hasAttribute('data-chv-offline');
+
+    // Foydalanuvchi sahifada biror narsa yozdimi (internet qaytganda qayta yuklash uchun)
+    var typed = false;
+    document.addEventListener('input', function () { typed = true; }, true);
 
     // /offline sahifasi shu tilda ko'rsatilsin
     if (!fromCache && cfg.locale) { write('chvLocale', cfg.locale); }
@@ -89,7 +94,7 @@
     }
 
     function isOffline() {
-        return fromCache || navigator.onLine === false;
+        return navigator.onLine === false;
     }
 
     function toast(text) {
@@ -105,19 +110,27 @@
         toastTimer = setTimeout(function () { node.hidden = true; }, 6000);
     }
 
+    var reloadingFresh = false;
+
     function backOnline() {
-        fromCache = false;
         hideOfflineBar();
+        // Keshdagi sahifa yangisi bilan almashtiriladi (yangi CSRF token, yangi ma'lumot).
+        // Foydalanuvchi biror narsa yozgan bo'lsa, matni yo'qolmasin: sahifa qoladi, formalar to'xtatilgan holda.
+        if (fromCache && !typed && !reloadingFresh) {
+            reloadingFresh = true;
+            location.reload();
+        }
     }
 
-    if (isOffline()) { showOfflineBar(); }
+    if (fromCache || isOffline()) { showOfflineBar(); }
     window.addEventListener('offline', showOfflineBar);
     window.addEventListener('online', backOnline);
 
-    // Keshdan ochilgan sahifa: internet qaytganini tekshirib turish ('online' hodisasi har doim ham kelmaydi)
+    // Keshdan ochilgan sahifa: internet qaytganini tekshirib turish ('online' hodisasi har doim ham kelmaydi).
+    // Statik fayl va cookie'siz: Laravel sessiyasiga tegmaydi (fondagi so'rov sessiya cookie'sini qayta yozmasin)
     if (fromCache && window.fetch) {
         var probe = setInterval(function () {
-            fetch('/offline', { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' }).then(function (res) {
+            fetch('/manifest.json?online=' + Date.now(), { method: 'HEAD', cache: 'no-store', credentials: 'omit' }).then(function (res) {
                 if (res.ok) { clearInterval(probe); backOnline(); }
             }).catch(function () {});
         }, 15000);
@@ -138,6 +151,7 @@
                 toast(t.offlineForm);
                 return;
             }
+            // Keshdagi sahifadan ham yuboriladi: token eskirgan bo'lsa server (bootstrap/app.php) baribir chiqaradi
             HTMLFormElement.prototype.submit.call(form);
         });
     }
@@ -164,12 +178,14 @@
             return;
         }
 
-        // Oflaynda ma'lumot yuboradigan formalar to'xtatiladi; kiritilgan matn sahifada qoladi
+        // Ma'lumot yuboradigan formalar to'xtatiladi (kiritilgan matn sahifada qoladi):
+        //  - internet yo'q bo'lsa;
+        //  - sahifa keshdan ochilgan bo'lsa (internet qaytgan bo'lsa ham — undagi token eskirgan)
         var method = (form.getAttribute('method') || 'get').toLowerCase();
-        if (method !== 'get' && isOffline()) {
+        if (method !== 'get' && (isOffline() || fromCache)) {
             e.preventDefault();
             e.stopImmediatePropagation();
-            toast(t.offlineForm);
+            toast(isOffline() ? t.offlineForm : t.cachedForm);
         }
     }, true);
 

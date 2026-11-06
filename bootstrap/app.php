@@ -50,7 +50,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withExceptions(function (Exceptions $exceptions): void {
 
-        //
+        // 419 (CSRF token eskirgan): Laravel uni HttpException(419) ga aylantiradi, asl sabab — previous
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() === 419 && $e->getPrevious() instanceof \Illuminate\Session\TokenMismatchException) {
+                return \App\Support\PageExpired::respond($request);
+            }
+
+            return null;
+        });
 
     })->create();
 
