@@ -645,7 +645,10 @@
     "Internet butunlay yo'q bo'lsa, oldin ochilgan sahifalarni ko'rish mumkin. Yangi ma'lumot kiritish uchun esa internet kerak.": "Если интернета нет совсем, можно смотреть ранее открытые страницы. А для ввода новых данных интернет нужен.",
     "Shart emas: Chorvadorim brauzerda ochiladi — telefonda ham, kompyuterda ham.": "Не обязательно: Chorvadorim открывается в браузере — и на телефоне, и на компьютере.",
     "Xohlasangiz, uni ilova sifatida o'rnating: telefon ekranida belgisi paydo bo'ladi, tezroq ochiladi va internet yo'qligida oxirgi ochilgan sahifalarni ko'rsatadi. Android'da sahifadagi «Ilovani o'rnatish» tugmasini, iPhone'da esa «Ulashish» → «Bosh ekranga qo'shish» ni bosing.": "При желании установите его как приложение: на экране телефона появится значок, оно будет открываться быстрее и без интернета покажет последние открытые страницы. На Android нажмите на странице «Установить приложение», на iPhone — «Поделиться» → «На экран «Домой»».",
-    "Pastdagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.": "Нажмите кнопку «Поделиться» :icon внизу экрана, затем выберите «На экран «Домой»».",
-    "Tepadagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.": "Нажмите кнопку «Поделиться» :icon вверху экрана, затем выберите «На экран «Домой»».",
-    "Manzil qatoridagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.": "Нажмите кнопку «Поделиться» :icon в адресной строке, затем выберите «На экран «Домой»»."
+    "Tepada, «chorvadorim.uz» yozuvi yonidagi :share tugmasini bosing.": "Вверху, рядом с надписью «chorvadorim.uz», нажмите кнопку :share.",
+    "Ekran pastidagi :share tugmasini bosing.": "Нажмите кнопку :share внизу экрана.",
+    "Ekran tepasidagi :share tugmasini bosing.": "Нажмите кнопку :share вверху экрана.",
+    "Ochilgan ro'yxatni pastga suring.": "Прокрутите открывшийся список вниз.",
+    ":add «Добавить на экран «Домой»» ni bosing (telefon inglizcha bo'lsa — «Add to Home Screen»).": "Нажмите :add «Добавить на экран «Домой»» (если телефон на английском — «Add to Home Screen»).",
+    ":add «Добавить на экран «Домой»» ni bosing (inglizcha — «Add to Home Screen»).": "Нажмите :add «Добавить на экран «Домой»» (на английском — «Add to Home Screen»)."
 }

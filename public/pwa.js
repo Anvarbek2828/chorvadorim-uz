@@ -253,40 +253,70 @@
         if (panel && panel.parentNode) { panel.parentNode.removeChild(panel); }
         panel = null;
         document.body.classList.remove('chv-has-install');
+        document.body.style.paddingBottom = '';
     }
 
-    // "Ulashish" belgisi (kvadrat va yuqoriga strelka), matn ichida
-    function shareIcon() {
+    // Matn ichidagi belgilar (iOS'dagi ko'rinishiga o'xshash):
+    //  share — "Ulashish": kvadrat va yuqoriga strelka; add — "Добавить на экран «Домой»": kvadrat ichida "+"
+    var ICONS = {
+        share: { cls: 'chv-share-icon', paths: ['M12 3v12', 'M8 7l4-4 4 4', 'M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1'] },
+        add: { cls: 'chv-add-icon', rect: true, paths: ['M12 8v8', 'M8 12h8'] }
+    };
+
+    function inlineIcon(name) {
         var ns = 'http://www.w3.org/2000/svg';
+        var def = ICONS[name];
         var svg = document.createElementNS(ns, 'svg');
         svg.setAttribute('viewBox', '0 0 24 24');
-        svg.setAttribute('class', 'chv-share-icon');
+        svg.setAttribute('class', 'chv-step-icon ' + def.cls);
         svg.setAttribute('aria-hidden', 'true');
         svg.setAttribute('focusable', 'false');
-        var paths = ['M12 3v12', 'M8 7l4-4 4 4', 'M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1'];
-        for (var i = 0; i < paths.length; i++) {
+        if (def.rect) {
+            var rect = document.createElementNS(ns, 'rect');
+            rect.setAttribute('x', '3.5');
+            rect.setAttribute('y', '3.5');
+            rect.setAttribute('width', '17');
+            rect.setAttribute('height', '17');
+            rect.setAttribute('rx', '4.5');
+            svg.appendChild(rect);
+        }
+        for (var i = 0; i < def.paths.length; i++) {
             var p = document.createElementNS(ns, 'path');
-            p.setAttribute('d', paths[i]);
+            p.setAttribute('d', def.paths[i]);
             svg.appendChild(p);
         }
         return svg;
     }
 
-    // Brauzerga mos ko'rsatma; matndagi ":icon" o'rniga belgi qo'yiladi (innerHTML ishlatilmaydi)
-    function iosInstruction() {
-        var text = iosThirdParty ? t.iosOther : (isIPad ? t.iosSafariPad : t.iosSafariPhone);
-        var p = el('p', 'chv-install__hint');
-        var parts = String(text || '').split(':icon');
+    // Matndagi ":share" va ":add" o'rniga belgi qo'yiladi (innerHTML ishlatilmaydi)
+    function richText(node, text) {
+        var parts = String(text || '').split(/(:share|:add)/);
         for (var i = 0; i < parts.length; i++) {
-            if (i > 0) { p.appendChild(shareIcon()); }
-            p.appendChild(document.createTextNode(parts[i]));
+            if (parts[i] === ':share') { node.appendChild(inlineIcon('share')); }
+            else if (parts[i] === ':add') { node.appendChild(inlineIcon('add')); }
+            else if (parts[i]) { node.appendChild(document.createTextNode(parts[i])); }
         }
-        return p;
+        return node;
+    }
+
+    // iPhone/iPad: brauzerga mos 3 ta raqamlangan qadam
+    function iosSteps() {
+        var steps = iosThirdParty
+            ? [t.iosStep1Other, t.iosStep2, t.iosStep3Other]
+            : [isIPad ? t.iosStep1SafariPad : t.iosStep1SafariPhone, t.iosStep2, t.iosStep3Safari];
+        var list = el('ol', 'chv-install__steps');
+        for (var i = 0; i < steps.length; i++) {
+            var item = el('li', 'chv-install__step');
+            item.appendChild(el('span', 'chv-install__num', String(i + 1)));
+            item.appendChild(richText(el('span', 'chv-install__step-text'), steps[i]));
+            list.appendChild(item);
+        }
+        return list;
     }
 
     function showPanel(ios) {
         if (panel || !document.body) { return; }
-        panel = el('div', 'chv-install');
+        panel = el('div', ios ? 'chv-install chv-install--ios' : 'chv-install');
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-label', t.installTitle);
 
@@ -299,7 +329,6 @@
 
         var body = el('div', 'chv-install__body');
         body.appendChild(el('p', 'chv-install__text', t.installText));
-        if (ios) { body.appendChild(iosInstruction()); }
         var actions = el('div', 'chv-install__actions');
 
         if (!ios) {
@@ -317,10 +346,19 @@
         });
         actions.appendChild(later);
 
-        body.appendChild(actions);
-        panel.appendChild(body);
+        if (ios) {
+            // iOS: ikonka va sarlavha bir qatorda, qadamlar va tugma ostida to'liq kenglikda
+            panel.appendChild(body);
+            panel.appendChild(iosSteps());
+            panel.appendChild(actions);
+        } else {
+            body.appendChild(actions);
+            panel.appendChild(body);
+        }
         document.body.appendChild(panel);
         document.body.classList.add('chv-has-install');
+        // iOS paneli balandroq: sahifa oxiri uning ostida qolmasin (Android/kompyuter paneli o'zgarmaydi)
+        if (ios) { document.body.style.paddingBottom = (panel.offsetHeight + 24) + 'px'; }
     }
 
     function promptInstall() {

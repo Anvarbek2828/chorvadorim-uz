@@ -155,34 +155,61 @@ class PwaTest extends TestCase
         $this->assertStringContainsString('CLEAR_PAGES', $sw);
     }
 
-    public function test_cache_version_is_v2(): void
+    public function test_cache_version_is_v3(): void
     {
-        $this->assertStringContainsString("const CACHE_VERSION = 'v2';", file_get_contents(public_path('sw.js')));
+        $this->assertStringContainsString("const CACHE_VERSION = 'v3';", file_get_contents(public_path('sw.js')));
     }
 
-    public function test_ios_instructions_in_three_languages(): void
+    public function test_ios_steps_in_three_languages(): void
     {
-        $keys = [
-            'iosSafariPhone' => "Pastdagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.",
-            'iosSafariPad' => "Tepadagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.",
-            'iosOther' => "Manzil qatoridagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.",
+        // config nomi => [kalit (uz), kerakli belgi]
+        $steps = [
+            'iosStep1Other' => ["Tepada, «chorvadorim.uz» yozuvi yonidagi :share tugmasini bosing.", ':share'],
+            'iosStep1SafariPhone' => ['Ekran pastidagi :share tugmasini bosing.', ':share'],
+            'iosStep1SafariPad' => ['Ekran tepasidagi :share tugmasini bosing.', ':share'],
+            'iosStep2' => ["Ochilgan ro'yxatni pastga suring.", null],
+            'iosStep3Other' => [":add «Добавить на экран «Домой»» ni bosing (telefon inglizcha bo'lsa — «Add to Home Screen»).", ':add'],
+            'iosStep3Safari' => [':add «Добавить на экран «Домой»» ni bosing (inglizcha — «Add to Home Screen»).', ':add'],
         ];
 
         foreach (['uz_cyrl', 'ru'] as $locale) {
             $json = json_decode(file_get_contents(lang_path($locale . '.json')), true);
-            foreach ($keys as $key) {
+            foreach ($steps as [$key, $icon]) {
                 $this->assertArrayHasKey($key, $json, "{$locale}.json da yo'q: {$key}");
-                // Belgi o'rni saqlangan bo'lishi kerak
-                $this->assertStringContainsString(':icon', $json[$key]);
+                if ($icon) {
+                    $this->assertStringContainsString($icon, $json[$key], "{$locale}: belgi o'rni yo'q");
+                }
+                // Menyu bandi nomi tarjima qilinmaydi
+                if ($icon === ':add') {
+                    $this->assertStringContainsString('«Добавить на экран «Домой»»', $json[$key]);
+                    $this->assertStringContainsString('«Add to Home Screen»', $json[$key]);
+                }
             }
         }
 
         foreach (['uz', 'uz_cyrl', 'ru'] as $locale) {
-            $response = $this->withSession(['locale' => $locale])->get('/')->assertOk();
-            foreach ($keys as $name => $key) {
-                $response->assertSee('"' . $name . '":' . json_encode(__($key, [], $locale), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), false);
+            $response = $this->withSession(['locale' => $locale])->get('/')->assertOk()
+                ->assertSee('«Добавить на экран «Домой»»', false)
+                ->assertSee('«Add to Home Screen»', false);
+            foreach ($steps as $name => [$key]) {
+                $value = json_encode(__($key, [], $locale), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
+                $response->assertSee('"' . $name . '":' . $value, false);
             }
         }
+    }
+
+    public function test_pwa_js_builds_steps_with_share_and_add_icons(): void
+    {
+        $js = file_get_contents(public_path('pwa.js'));
+        $partial = file_get_contents(resource_path('views/layouts/partials/pwa-scripts.blade.php'));
+
+        // :add — yumaloq burchakli kvadrat ichida "+"
+        $this->assertStringContainsString("add: { cls: 'chv-add-icon', rect: true, paths: ['M12 8v8', 'M8 12h8'] }", $js);
+        $this->assertStringContainsString("split(/(:share|:add)/)", $js);
+        $this->assertStringContainsString("el('ol', 'chv-install__steps')", $js);
+        $this->assertStringContainsString('.chv-install--ios', $partial);
+        $this->assertStringContainsString('max-height: 50vh', $partial);
+        $this->assertStringContainsString('width: 20px; height: 20px', $partial);
     }
 
     public function test_pwa_js_detects_ios_browsers_and_in_app(): void
