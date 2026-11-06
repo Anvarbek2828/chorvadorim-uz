@@ -18,7 +18,10 @@
             'installText' => __("Chorvadorim'ni ilova sifatida o'rnating — tezroq ochiladi"),
             'installBtn' => __("O'rnatish"),
             'later' => __('Keyinroq'),
-            'iosText' => __("Ilova qilib o'rnatish uchun «Ulashish» tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang."),
+            // iPhone/iPad ko'rsatmalari; ":icon" o'rniga pwa.js "Ulashish" belgisini qo'yadi
+            'iosSafariPhone' => __("Pastdagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang."),
+            'iosSafariPad' => __("Tepadagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang."),
+            'iosOther' => __("Manzil qatoridagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang."),
         ],
     ];
 @endphp
@@ -32,6 +35,8 @@
     .chv-install__icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
     .chv-install__body { flex: 1; min-width: 0; }
     .chv-install__text { margin: 0; color: #fff !important; font-size: .9375rem; line-height: 1.4; font-weight: 600; }
+    .chv-install__hint { margin: .375rem 0 0; color: #E3EBDC !important; font-size: .9375rem; line-height: 1.5; }
+    .chv-share-icon { display: inline-block; width: 1.25em; height: 1.25em; margin: 0 .2em; vertical-align: -.25em; padding: .1em; border-radius: .3em; background: rgba(255, 255, 255, .16); fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .chv-install__actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .625rem; }
     .chv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: .5rem 1rem; border-radius: .625rem; font: inherit; font-size: .9375rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; }
     .chv-btn--light { background: #FAF6EE; color: #2F4B33 !important; }

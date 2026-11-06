@@ -216,11 +216,21 @@
 
     var ua = navigator.userAgent || '';
     var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-    var inApp = /Telegram|FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger|; wv\)/i.test(ua)
+    // iPhone, iPod, iPad va iPadOS (o'zini Macintosh deb ko'rsatadi, lekin sensorli ekran)
+    var isIPad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var isIOS = isIPad || /iPhone|iPod/.test(ua);
+
+    // Ilova ichki brauzerlari: Telegram, Instagram, Facebook va h.k. iOS'da oddiy brauzerlar
+    // (Safari, CriOS, EdgiOS, FxiOS) UA'sida "Safari/" bor; ichki WebView'larda odatda yo'q.
+    var inApp = /Telegram|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line\/|MicroMessenger|Snapchat|TikTok|musical_ly|BytedanceWebview|LinkedInApp|Twitter|; wv\)/i.test(ua)
         || typeof window.TelegramWebviewProxy !== 'undefined'
-        || typeof window.TelegramWebview !== 'undefined';
-    var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    var iosSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA|YaBrowser/.test(ua);
+        || typeof window.TelegramWebview !== 'undefined'
+        || (isIOS && !/Safari\//.test(ua));
+
+    // iOS brauzeri: Chrome (CriOS), Edge (EdgiOS), Firefox (FxiOS) — "Ulashish" manzil qatorida;
+    // Safari — iPhone'da pastda, iPad'da tepada
+    var iosThirdParty = /CriOS|EdgiOS|FxiOS/.test(ua);
+    var iosOffer = isIOS && !inApp;
     var canOffer = !standalone && !inApp;
     var deferredPrompt = null;
     var panel = null;
@@ -245,6 +255,35 @@
         document.body.classList.remove('chv-has-install');
     }
 
+    // "Ulashish" belgisi (kvadrat va yuqoriga strelka), matn ichida
+    function shareIcon() {
+        var ns = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('class', 'chv-share-icon');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        var paths = ['M12 3v12', 'M8 7l4-4 4 4', 'M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1'];
+        for (var i = 0; i < paths.length; i++) {
+            var p = document.createElementNS(ns, 'path');
+            p.setAttribute('d', paths[i]);
+            svg.appendChild(p);
+        }
+        return svg;
+    }
+
+    // Brauzerga mos ko'rsatma; matndagi ":icon" o'rniga belgi qo'yiladi (innerHTML ishlatilmaydi)
+    function iosInstruction() {
+        var text = iosThirdParty ? t.iosOther : (isIPad ? t.iosSafariPad : t.iosSafariPhone);
+        var p = el('p', 'chv-install__hint');
+        var parts = String(text || '').split(':icon');
+        for (var i = 0; i < parts.length; i++) {
+            if (i > 0) { p.appendChild(shareIcon()); }
+            p.appendChild(document.createTextNode(parts[i]));
+        }
+        return p;
+    }
+
     function showPanel(ios) {
         if (panel || !document.body) { return; }
         panel = el('div', 'chv-install');
@@ -259,7 +298,8 @@
         panel.appendChild(icon);
 
         var body = el('div', 'chv-install__body');
-        body.appendChild(el('p', 'chv-install__text', ios ? t.iosText : t.installText));
+        body.appendChild(el('p', 'chv-install__text', t.installText));
+        if (ios) { body.appendChild(iosInstruction()); }
         var actions = el('div', 'chv-install__actions');
 
         if (!ios) {
@@ -285,7 +325,8 @@
 
     function promptInstall() {
         if (!deferredPrompt) {
-            if (iosSafari) { showPanel(true); }
+            // iOS: tugma bosilganda ko'rsatma "Keyinroq" dan qat'i nazar ochiladi
+            if (iosOffer) { showPanel(true); }
             return;
         }
         var promptEvent = deferredPrompt;
@@ -316,8 +357,8 @@
         var buttons = installButtons();
         for (var i = 0; i < buttons.length; i++) { buttons[i].addEventListener('click', promptInstall); }
 
-        // iPhone/iPad Safari: beforeinstallprompt yo'q — qo'lda qo'shish ko'rsatmasi
-        if (iosSafari) {
+        // iPhone/iPad (Safari, Chrome, Edge, Firefox): beforeinstallprompt yo'q — qo'lda qo'shish ko'rsatmasi
+        if (iosOffer) {
             setInstallButtons(true);
             if (cfg.installPanel && !dismissedRecently()) {
                 if (document.readyState === 'loading') {

@@ -639,11 +639,13 @@
     "Chorvadorim'ni ilova sifatida o'rnating — tezroq ochiladi": "Установите Chorvadorim как приложение — будет открываться быстрее",
     "O'rnatish": "Установить",
     "Keyinroq": "Позже",
-    "Ilova qilib o'rnatish uchun «Ulashish» tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.": "Чтобы установить как приложение, нажмите «Поделиться», затем выберите «На экран «Домой»».",
     "Internet yo'q": "Нет интернета",
     "Ulanish tiklangach sahifa ochiladi.": "Страница откроется, когда связь восстановится.",
     "Qayta urinish": "Повторить",
     "Internet butunlay yo'q bo'lsa, oldin ochilgan sahifalarni ko'rish mumkin. Yangi ma'lumot kiritish uchun esa internet kerak.": "Если интернета нет совсем, можно смотреть ранее открытые страницы. А для ввода новых данных интернет нужен.",
     "Shart emas: Chorvadorim brauzerda ochiladi — telefonda ham, kompyuterda ham.": "Не обязательно: Chorvadorim открывается в браузере — и на телефоне, и на компьютере.",
-    "Xohlasangiz, uni ilova sifatida o'rnating: telefon ekranida belgisi paydo bo'ladi, tezroq ochiladi va internet yo'qligida oxirgi ochilgan sahifalarni ko'rsatadi. Android'da sahifadagi «Ilovani o'rnatish» tugmasini, iPhone'da esa «Ulashish» → «Bosh ekranga qo'shish» ni bosing.": "При желании установите его как приложение: на экране телефона появится значок, оно будет открываться быстрее и без интернета покажет последние открытые страницы. На Android нажмите на странице «Установить приложение», на iPhone — «Поделиться» → «На экран «Домой»»."
+    "Xohlasangiz, uni ilova sifatida o'rnating: telefon ekranida belgisi paydo bo'ladi, tezroq ochiladi va internet yo'qligida oxirgi ochilgan sahifalarni ko'rsatadi. Android'da sahifadagi «Ilovani o'rnatish» tugmasini, iPhone'da esa «Ulashish» → «Bosh ekranga qo'shish» ni bosing.": "При желании установите его как приложение: на экране телефона появится значок, оно будет открываться быстрее и без интернета покажет последние открытые страницы. На Android нажмите на странице «Установить приложение», на iPhone — «Поделиться» → «На экран «Домой»».",
+    "Pastdagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.": "Нажмите кнопку «Поделиться» :icon внизу экрана, затем выберите «На экран «Домой»».",
+    "Tepadagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.": "Нажмите кнопку «Поделиться» :icon вверху экрана, затем выберите «На экран «Домой»».",
+    "Manzil qatoridagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.": "Нажмите кнопку «Поделиться» :icon в адресной строке, затем выберите «На экран «Домой»»."
 }

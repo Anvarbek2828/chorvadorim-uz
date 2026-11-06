@@ -155,6 +155,51 @@ class PwaTest extends TestCase
         $this->assertStringContainsString('CLEAR_PAGES', $sw);
     }
 
+    public function test_cache_version_is_v2(): void
+    {
+        $this->assertStringContainsString("const CACHE_VERSION = 'v2';", file_get_contents(public_path('sw.js')));
+    }
+
+    public function test_ios_instructions_in_three_languages(): void
+    {
+        $keys = [
+            'iosSafariPhone' => "Pastdagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.",
+            'iosSafariPad' => "Tepadagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.",
+            'iosOther' => "Manzil qatoridagi «Ulashish» :icon tugmasini bosing, so'ng «Bosh ekranga qo'shish» ni tanlang.",
+        ];
+
+        foreach (['uz_cyrl', 'ru'] as $locale) {
+            $json = json_decode(file_get_contents(lang_path($locale . '.json')), true);
+            foreach ($keys as $key) {
+                $this->assertArrayHasKey($key, $json, "{$locale}.json da yo'q: {$key}");
+                // Belgi o'rni saqlangan bo'lishi kerak
+                $this->assertStringContainsString(':icon', $json[$key]);
+            }
+        }
+
+        foreach (['uz', 'uz_cyrl', 'ru'] as $locale) {
+            $response = $this->withSession(['locale' => $locale])->get('/')->assertOk();
+            foreach ($keys as $name => $key) {
+                $response->assertSee('"' . $name . '":' . json_encode(__($key, [], $locale), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), false);
+            }
+        }
+    }
+
+    public function test_pwa_js_detects_ios_browsers_and_in_app(): void
+    {
+        $js = file_get_contents(public_path('pwa.js'));
+
+        foreach (['CriOS', 'EdgiOS', 'FxiOS', 'iPhone|iPod', 'Macintosh', 'maxTouchPoints', 'Telegram', 'Instagram', 'FBAN', 'TelegramWebviewProxy', 'navigator.standalone', '(display-mode: standalone)'] as $needle) {
+            $this->assertStringContainsString($needle, $js, "pwa.js da yo'q: {$needle}");
+        }
+
+        // In-app brauzer va o'rnatilgan holatda taklif yo'q; iOS ko'rsatmasi ham in-app'da chiqmaydi
+        $this->assertStringContainsString('var canOffer = !standalone && !inApp;', $js);
+        $this->assertStringContainsString('var iosOffer = isIOS && !inApp;', $js);
+        // Eski "faqat Safari" sharti olib tashlangan
+        $this->assertStringNotContainsString('var iosSafari', $js);
+    }
+
     public function test_logout_pages_load_cache_clearing_script(): void
     {
         $js = file_get_contents(public_path('pwa.js'));
